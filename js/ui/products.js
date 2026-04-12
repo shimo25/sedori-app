@@ -37,6 +37,7 @@ const ProductsUI = (() => {
             <span>仕入 ${yen(p.purchasePrice)}</span>
             ${p.salePrice ? `<span>売上 ${yen(p.salePrice)}</span>` : ''}
             ${p.salePrice ? `<span style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">損益 ${yen(profit)}</span>` : ''}
+            ${p.status === 'completed' && p.salePrice ? `<span class="product-margin" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">粗利率 ${calcMargin(p)}%</span>` : ''}
           </div>
         </div>`;
       li.onclick = () => openForm(p);
@@ -328,6 +329,13 @@ const ProductsUI = (() => {
     closeBtn.addEventListener('touchend', (e) => { e.stopPropagation(); overlay.remove(); });
 
     document.body.appendChild(overlay);
+  }
+
+  // 商品単体の粗利率（売上に対する利益の割合）
+  function calcMargin(p) {
+    if (!p.salePrice) return '0.0';
+    const profit = calcProfit(p);
+    return (profit / p.salePrice * 100).toFixed(1);
   }
 
   function numOrNull(v) { return v === '' ? null : Number(v); }

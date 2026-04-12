@@ -63,14 +63,17 @@ const Reports = (() => {
 
   // ---------- KPI ----------
   function renderKPI(s, prev) {
-    const margin = Analytics.profitMargin(s.netProfit, s.sales);
+    // 売上総利益率（粗利率）= 粗利 ÷ 売上高
+    const grossMargin = s.sales ? (s.grossProfit / s.sales * 100) : 0;
+    // 営業利益率 = 純利益（営業利益）÷ 売上高
+    const opMargin = s.sales ? (s.netProfit / s.sales * 100) : 0;
     const kpis = [
-      { label: '売上',   value: yen(s.sales),        color: 'sales' },
-      { label: '仕入',   value: yen(s.cost),          color: 'purchase' },
-      { label: '経費',   value: yen(s.fees + s.ship + (s.packaging||0) + (s.otherCost||0) + s.expenses), color: 'expense' },
-      { label: '粗利',   value: yen(s.grossProfit),   color: s.grossProfit >= 0 ? 'profit' : 'loss' },
-      { label: '純利益',  value: yen(s.netProfit),     color: s.netProfit >= 0 ? 'profit' : 'loss' },
-      { label: '利益率',  value: margin.toFixed(1) + '%', color: margin >= 0 ? 'profit' : 'loss' }
+      { label: '売上高',      value: yen(s.sales),        color: 'sales' },
+      { label: '売上原価',    value: yen(s.cost),          color: 'purchase' },
+      { label: '販管費',      value: yen(s.fees + s.ship + (s.packaging||0) + (s.otherCost||0) + s.expenses), color: 'expense' },
+      { label: '売上総利益',  value: yen(s.grossProfit),   color: s.grossProfit >= 0 ? 'profit' : 'loss' },
+      { label: '営業利益',    value: yen(s.netProfit),     color: s.netProfit >= 0 ? 'profit' : 'loss' },
+      { label: '営業利益率',  value: opMargin.toFixed(1) + '%', color: opMargin >= 0 ? 'profit' : 'loss' }
     ];
     const el = document.getElementById('reportKPI');
     el.innerHTML = kpis.map(k => {
@@ -85,8 +88,8 @@ const Reports = (() => {
 
   function buildYoY(label, prev, cur) {
     let curV, prevV;
-    if (label === '売上') { curV = cur.sales; prevV = prev.sales; }
-    else if (label === '純利益') { curV = cur.netProfit; prevV = prev.netProfit; }
+    if (label === '売上高') { curV = cur.sales; prevV = prev.sales; }
+    else if (label === '営業利益') { curV = cur.netProfit; prevV = prev.netProfit; }
     else return '';
     const pct = Analytics.yoyPct(curV, prevV);
     if (prevV === 0 && curV === 0) return '';
@@ -339,18 +342,25 @@ const Reports = (() => {
   // ---------- テキスト集計（既存相当） ----------
   function renderTextSummary(s) {
     const el = document.getElementById('reportSummary');
+    const grossMargin = s.sales ? (s.grossProfit / s.sales * 100).toFixed(1) : '0.0';
+    const opMargin = s.sales ? (s.netProfit / s.sales * 100).toFixed(1) : '0.0';
     el.innerHTML = `
       <table style="width:100%; font-size:14px;">
+        <tr><td><b>損益計算書（P/L）</b></td><td></td></tr>
         <tr><td>売上高</td><td style="text-align:right">${yen(s.sales)}</td></tr>
-        <tr><td>仕入原価</td><td style="text-align:right">${yen(s.cost)}</td></tr>
-        <tr style="border-top:1px solid var(--border)"><td>粗利</td><td style="text-align:right"><b>${yen(s.grossProfit)}</b></td></tr>
-        <tr><td>販売手数料</td><td style="text-align:right">${yen(Math.round(s.fees))}</td></tr>
-        <tr><td>送料</td><td style="text-align:right">${yen(Math.round(s.ship))}</td></tr>
-        <tr><td>梱包資材費</td><td style="text-align:right">${yen(Math.round(s.packaging || 0))}</td></tr>
-        <tr><td>その他経費（商品）</td><td style="text-align:right">${yen(Math.round(s.otherCost || 0))}</td></tr>
-        <tr><td>その他経費（一般）</td><td style="text-align:right">${yen(s.expenses)}</td></tr>
-        <tr style="border-top:2px solid var(--primary)"><td><b>純利益</b></td>
-          <td style="text-align:right"><b style="color:${s.netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">${yen(s.netProfit)}</b></td></tr>
+        <tr><td>売上原価（仕入）</td><td style="text-align:right">${yen(s.cost)}</td></tr>
+        <tr style="border-top:1.5px solid var(--border)">
+          <td><b>売上総利益（粗利）</b></td>
+          <td style="text-align:right"><b>${yen(s.grossProfit)}</b> <span class="muted">${grossMargin}%</span></td></tr>
+        <tr><td colspan="2" class="muted" style="padding:4px 0 2px">─ 販売費及び一般管理費（販管費）</td></tr>
+        <tr><td style="padding-left:12px">販売手数料</td><td style="text-align:right">${yen(Math.round(s.fees))}</td></tr>
+        <tr><td style="padding-left:12px">荷造運賃（送料）</td><td style="text-align:right">${yen(Math.round(s.ship))}</td></tr>
+        <tr><td style="padding-left:12px">梱包資材費</td><td style="text-align:right">${yen(Math.round(s.packaging || 0))}</td></tr>
+        <tr><td style="padding-left:12px">その他経費（商品別）</td><td style="text-align:right">${yen(Math.round(s.otherCost || 0))}</td></tr>
+        <tr><td style="padding-left:12px">その他経費（一般）</td><td style="text-align:right">${yen(s.expenses)}</td></tr>
+        <tr style="border-top:2px solid var(--primary)">
+          <td><b>営業利益</b></td>
+          <td style="text-align:right"><b style="color:${s.netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">${yen(s.netProfit)}</b> <span class="muted">${opMargin}%</span></td></tr>
         <tr><td colspan="2" class="muted" style="padding-top:8px">販売件数: ${s.soldCount}件</td></tr>
       </table>`;
   }
