@@ -37,7 +37,7 @@ const ProductsUI = (() => {
             <span>仕入 ${yen(p.purchasePrice)}</span>
             ${p.salePrice ? `<span>売上 ${yen(p.salePrice)}</span>` : ''}
             ${p.salePrice ? `<span style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">損益 ${yen(profit)}</span>` : ''}
-            ${p.status === 'completed' && p.salePrice ? `<span class="product-margin" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">粗利率 ${calcMargin(p)}%</span>` : ''}
+            ${p.salePrice ? `<span class="product-margin" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">粗利率 ${calcMargin(p)}%</span>` : ''}
           </div>
         </div>`;
       li.onclick = () => openForm(p);
