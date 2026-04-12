@@ -443,6 +443,22 @@ html.dark .csv-preview th { background: #0f172a; }
   color: #fff; padding: 4px 14px; border-radius: 8px;
   font-weight: 700; font-size: 13px; margin-left: 8px; cursor: pointer;
 }
+.backup-reminder {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: #f59e0b; color: #fff;
+  text-align: center; padding: 12px 16px;
+  font-size: 13px; font-weight: 600;
+  z-index: 199;
+  padding-top: calc(12px + var(--safe-top));
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.backup-reminder-btns { display: flex; gap: 8px; }
+.backup-reminder .btn-sm {
+  padding: 5px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+}
+.backup-reminder .btn-primary { background: #fff; color: #f59e0b; }
+.backup-reminder .btn-sm:not(.btn-primary) { background: rgba(255,255,255,0.25); color: #fff; border: 1px solid rgba(255,255,255,0.5); }
+html.dark .backup-reminder { background: #b45309; }
 
 /* ===== ユーティリティ ===== */
 .hidden { display: none !important; }

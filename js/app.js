@@ -46,6 +46,9 @@
   await ProductsUI.render();
   await ExpensesUI.render();
 
+  // バックアップ促進チェック
+  SettingsUI.checkBackupReminder();
+
   // Service Worker 登録 + 更新検知
   if ('serviceWorker' in navigator) {
     const reg = await navigator.serviceWorker.register('sw.js').catch(() => null);

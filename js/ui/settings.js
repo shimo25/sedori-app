@@ -4,14 +4,7 @@
 const SettingsUI = (() => {
   function init() {
     document.getElementById('btnBackup').onclick = async () => {
-      const data = await DB.exportAll();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `sedori-backup-${today()}.json`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 100);
-      Modal.toast('エクスポートしました');
+      await doBackup();
     };
     document.getElementById('fileRestore').onchange = async (e) => {
       const file = e.target.files[0];
@@ -132,7 +125,71 @@ const SettingsUI = (() => {
 
   function escapeAttr(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  return { init, render };
+  // ---------- バックアップ実行 ----------
+  async function doBackup() {
+    const data = await DB.exportAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sedori-backup-${today()}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 100);
+    await DB.Settings.set('lastBackupDate', today());
+    Modal.toast('バックアップしました');
+  }
+
+  // ---------- バックアップ促進チェック ----------
+  const BACKUP_INTERVAL_DAYS = 7;
+  async function checkBackupReminder() {
+    const last = await DB.Settings.get('lastBackupDate', null);
+    if (!last) {
+      // 一度もバックアップしていない場合、初回起動から3日後に促す
+      const firstUse = await DB.Settings.get('firstUseDate', null);
+      if (!firstUse) {
+        await DB.Settings.set('firstUseDate', today());
+        return;
+      }
+      if (daysSince(firstUse) < 3) return;
+    } else {
+      if (daysSince(last) < BACKUP_INTERVAL_DAYS) return;
+    }
+    // 今日すでに表示済みなら出さない
+    const dismissed = await DB.Settings.get('backupDismissedDate', null);
+    if (dismissed === today()) return;
+    showBackupReminder();
+  }
+
+  function daysSince(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+  }
+
+  function showBackupReminder() {
+    if (document.getElementById('backupReminder')) return;
+    const bar = document.createElement('div');
+    bar.id = 'backupReminder';
+    bar.className = 'backup-reminder';
+    const last = '';
+    bar.innerHTML = `
+      <span>データのバックアップをおすすめします</span>
+      <div class="backup-reminder-btns">
+        <button id="btnBackupNow" class="btn btn-primary btn-sm">今すぐ保存</button>
+        <button id="btnBackupLater" class="btn btn-sm">あとで</button>
+      </div>
+    `;
+    document.body.prepend(bar);
+    document.getElementById('btnBackupNow').onclick = async () => {
+      bar.remove();
+      await doBackup();
+    };
+    document.getElementById('btnBackupLater').onclick = async () => {
+      bar.remove();
+      await DB.Settings.set('backupDismissedDate', today());
+    };
+  }
+
+  return { init, render, checkBackupReminder };
 })();
 
 
