@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="せどり管理">
+  <meta name="theme-color" content="#2c7be5">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+  <title>せどり管理アプリ</title>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="app-header">
+    <h1 id="pageTitle">ダッシュボード</h1>
+    <button id="btnAdd" class="btn-icon" aria-label="新規登録">＋</button>
+  </header>
+
+  <!-- メインコンテンツ（画面切り替え） -->
+  <main id="main">
+    <section id="view-dashboard" class="view active">
+      <div class="dashboard-grid">
+        <div class="card"><span class="card-label">今月の売上</span><span class="card-value" id="dashSales">¥0</span></div>
+        <div class="card"><span class="card-label">今月の利益</span><span class="card-value" id="dashProfit">¥0</span></div>
+        <div class="card"><span class="card-label">在庫金額</span><span class="card-value" id="dashStock">¥0</span></div>
+        <div class="card"><span class="card-label">進行中取引</span><span class="card-value" id="dashOngoing">0</span></div>
+      </div>
+      <div class="card chart-card">
+        <h2>月次売上推移</h2>
+        <canvas id="chartMonthly"></canvas>
+      </div>
+    </section>
+
+    <section id="view-products" class="view">
+      <div class="filter-bar">
+        <select id="statusFilter">
+          <option value="all">すべて</option>
+          <option value="stocked">仕入済</option>
+          <option value="listed">出品中</option>
+          <option value="trading">取引中</option>
+          <option value="shipped">発送済み</option>
+          <option value="await_rating">受取評価待ち</option>
+          <option value="completed">取引完了</option>
+        </select>
+        <input type="search" id="searchBox" placeholder="商品名で検索">
+      </div>
+      <ul id="productList" class="product-list"></ul>
+      <p id="emptyProducts" class="empty hidden">登録された商品はありません。右上の ＋ ボタンから追加してください。</p>
+    </section>
+
+    <section id="view-expenses" class="view">
+      <ul id="expenseList" class="expense-list"></ul>
+      <p id="emptyExpenses" class="empty hidden">経費の記録はありません。</p>
+    </section>
+
+    <section id="view-materials" class="view">
+      <div id="materialsSummary"></div>
+      <div id="materialsGrid" class="materials-grid"></div>
+      <p id="emptyMaterials" class="empty hidden">登録された梱包資材はありません。下のボタンから追加してください。</p>
+      <button class="btn btn-primary btn-block" id="btnAddMaterial">＋ サイズを追加</button>
+    </section>
+
+    <section id="view-reports" class="view">
+      <div class="card">
+        <h2>期間選択</h2>
+        <div class="form-row">
+          <label>年 <input type="number" id="reportYear" min="2000" max="2100"></label>
+          <label>月 <select id="reportMonth">
+            <option value="0">年間</option>
+            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+            <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+            <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+          </select></label>
+        </div>
+      </div>
+      <!-- KPI カード -->
+      <div id="reportKPI" class="kpi-grid"></div>
+      <!-- 月次推移 -->
+      <div class="card chart-card"><h2>月次推移（売上・経費・利益）</h2><div class="chart-wrap"><canvas id="chartTrend"></canvas></div></div>
+      <!-- ドーナツ 2 列 -->
+      <div class="chart-pair">
+        <div class="card chart-card"><h2>経費の内訳</h2><div class="chart-wrap sq"><canvas id="chartExpense"></canvas></div></div>
+        <div class="card chart-card"><h2>ステータス別</h2><div class="chart-wrap sq"><canvas id="chartStatus"></canvas></div></div>
+      </div>
+      <!-- 累積利益 -->
+      <div class="card chart-card"><h2>累積利益カーブ</h2><div class="chart-wrap"><canvas id="chartCumProfit"></canvas></div></div>
+      <!-- 利益率分布 -->
+      <div class="card chart-card"><h2>利益率分布</h2><div class="chart-wrap"><canvas id="chartMargin"></canvas></div></div>
+      <!-- 仕入元別 -->
+      <div class="card chart-card"><h2>仕入元別売上</h2><div class="chart-wrap"><canvas id="chartSource"></canvas></div></div>
+      <!-- テキスト集計 -->
+      <div class="card">
+        <h2>集計</h2>
+        <div id="reportSummary"></div>
+      </div>
+      <!-- 出力 -->
+      <div class="card">
+        <h2>出力</h2>
+        <button class="btn btn-primary" id="btnExportCsvSales">売上CSV</button>
+        <button class="btn btn-primary" id="btnExportCsvExpenses">経費CSV</button>
+        <button class="btn btn-primary" id="btnExportCsvInventory">在庫CSV</button>
+        <button class="btn btn-accent" id="btnExportPdfJournal">仕訳帳PDF</button>
+        <button class="btn btn-accent" id="btnExportPdfLedger">総勘定元帳PDF</button>
+        <button class="btn btn-accent" id="btnExportPdfPL">損益計算書PDF</button>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="card">
+        <h2>バックアップ</h2>
+        <button class="btn btn-primary" id="btnBackup">JSONエクスポート</button>
+        <label class="btn btn-primary file-label">
+          JSONインポート
+          <input type="file" id="fileRestore" accept="application/json" hidden>
+        </label>
+      </div>
+      <div class="card">
+        <h2>CSVインポート（商品データ取込）</h2>
+        <p class="muted" style="margin-bottom:8px">他のアプリからエクスポートしたCSVを取り込めます。<br>列の割り当て画面で、どの列が何のデータかを指定できます。</p>
+        <button class="btn btn-accent" id="btnCsvImport">CSVファイルを選択</button>
+      </div>
+      <div class="card">
+        <h2>表示モード</h2>
+        <div class="dark-mode-row">
+          <button class="btn dm-btn" data-dm="light">ライト</button>
+          <button class="btn dm-btn" data-dm="dark">ダーク</button>
+          <button class="btn dm-btn" data-dm="auto">端末に連動</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>グラフ配色</h2>
+        <div id="themeColors"></div>
+        <div style="margin-top:8px">
+          <button class="btn" id="btnResetTheme">デフォルトに戻す</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>手数料プリセット</h2>
+        <div id="feePresets"></div>
+        <button class="btn" id="btnAddPreset">プリセット追加</button>
+      </div>
+      <div class="card">
+        <h2>このアプリについて</h2>
+        <p class="muted">せどり管理アプリ β版 / データは端末内にのみ保存されます。</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- モーダル（動的に内容を注入） -->
+  <div id="modalRoot"></div>
+
+  <!-- ボトムタブナビ -->
+  <nav class="tab-bar">
+    <button class="tab active" data-view="dashboard"><span class="tab-icon">📊</span><span>ホーム</span></button>
+    <button class="tab" data-view="products"><span class="tab-icon">🛍️</span><span>商品</span></button>
+    <button class="tab" data-view="expenses"><span class="tab-icon">💴</span><span>経費</span></button>
+    <button class="tab" data-view="materials"><span class="tab-icon">📦</span><span>資材</span></button>
+    <button class="tab" data-view="reports"><span class="tab-icon">📈</span><span>レポート</span></button>
+    <button class="tab" data-view="settings"><span class="tab-icon">⚙️</span><span>設定</span></button>
+  </nav>
+
+  <!-- 外部ライブラリ（CDN） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- アプリコード -->
+  <script src="js/models.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/utils/image.js"></script>
+  <script src="js/utils/csv.js"></script>
+  <script src="js/utils/csv-import.js"></script>
+  <script src="js/utils/charts.js"></script>
+  <script src="js/utils/pdf.js"></script>
+  <script src="js/utils/research.js"></script>
+  <script src="js/ui/modal.js"></script>
+  <script src="js/ui/products.js"></script>
+  <script src="js/ui/expenses.js"></script>
+  <script src="js/ui/materials.js"></script>
+  <script src="js/ui/dashboard.js"></script>
+  <script src="js/ui/reports.js"></script>
+  <script src="js/ui/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "せどり管理アプリ",
+  "short_name": "せどり管理",
+  "description": "メルカリ等の売上・仕入・経費・取引状態を管理し、CSV/PDF 出力に対応したスマホ向け管理ツール",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2c7be5",
+  "lang": "ja",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
