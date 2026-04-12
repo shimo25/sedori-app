@@ -151,6 +151,10 @@ const ProductsUI = (() => {
         const wrap = document.createElement('div');
         wrap.className = 'img-wrap';
         wrap.innerHTML = `<img src="${url}" alt=""><button type="button" class="img-remove" aria-label="削除">×</button>`;
+        wrap.querySelector('img').onclick = (e) => {
+          e.stopPropagation();
+          showImageViewer(url);
+        };
         wrap.querySelector('.img-remove').onclick = async (e) => {
           e.stopPropagation();
           URL.revokeObjectURL(url);
@@ -231,6 +235,18 @@ const ProductsUI = (() => {
         Dashboard.refresh();
       };
     }
+  }
+
+  function showImageViewer(url) {
+    const overlay = document.createElement('div');
+    overlay.className = 'image-viewer';
+    overlay.innerHTML = `
+      <button class="image-viewer-close" aria-label="閉じる">×</button>
+      <img src="${url}" alt="">
+    `;
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.querySelector('.image-viewer-close').onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
   }
 
   function numOrNull(v) { return v === '' ? null : Number(v); }
