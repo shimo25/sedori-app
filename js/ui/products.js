@@ -14,10 +14,12 @@ const ProductsUI = (() => {
     const filter = document.getElementById('statusFilter').value;
     const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
 
+    const sortKey = document.getElementById('sortOrder').value;
+
     let products = await DB.Products.list();
     if (filter !== 'all') products = products.filter(p => p.status === filter);
     if (q) products = products.filter(p => p.name.toLowerCase().includes(q));
-    products.sort((a, b) => b.updatedAt - a.updatedAt);
+    products.sort(getSortFn(sortKey));
 
     list.innerHTML = '';
     if (products.length === 0) { empty.classList.remove('hidden'); return; }
@@ -336,6 +338,25 @@ const ProductsUI = (() => {
     if (!p.salePrice) return '0.0';
     const profit = calcProfit(p);
     return (profit / p.salePrice * 100).toFixed(1);
+  }
+  function calcMarginNum(p) {
+    if (!p.salePrice) return -Infinity;
+    return calcProfit(p) / p.salePrice * 100;
+  }
+
+  function getSortFn(key) {
+    switch (key) {
+      case 'updated_asc':   return (a, b) => (a.updatedAt || 0) - (b.updatedAt || 0);
+      case 'purchase_desc': return (a, b) => (b.purchasePrice || 0) - (a.purchasePrice || 0);
+      case 'purchase_asc':  return (a, b) => (a.purchasePrice || 0) - (b.purchasePrice || 0);
+      case 'sale_desc':     return (a, b) => (b.salePrice || 0) - (a.salePrice || 0);
+      case 'sale_asc':      return (a, b) => (a.salePrice || 0) - (b.salePrice || 0);
+      case 'profit_desc':   return (a, b) => calcProfit(b) - calcProfit(a);
+      case 'profit_asc':    return (a, b) => calcProfit(a) - calcProfit(b);
+      case 'margin_desc':   return (a, b) => calcMarginNum(b) - calcMarginNum(a);
+      case 'margin_asc':    return (a, b) => calcMarginNum(a) - calcMarginNum(b);
+      default:              return (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
+    }
   }
 
   function numOrNull(v) { return v === '' ? null : Number(v); }

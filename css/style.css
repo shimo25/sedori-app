@@ -85,11 +85,12 @@ main {
 
 /* ===== 商品リスト ===== */
 .filter-bar {
-  display: flex; gap: 8px; margin-bottom: 10px;
+  display: flex; gap: 8px; margin-bottom: 8px;
 }
 .filter-bar select, .filter-bar input {
   flex: 1; padding: 10px; border: 1px solid var(--border);
-  border-radius: 10px; background: #fff;
+  border-radius: 10px; background: #fff; font-size: 13px;
+  min-width: 0;
 }
 .product-list, .expense-list { list-style: none; padding: 0; margin: 0; }
 .product-item {

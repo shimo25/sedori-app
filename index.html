@@ -45,6 +45,20 @@
           <option value="await_rating">受取評価待ち</option>
           <option value="completed">取引完了</option>
         </select>
+        <select id="sortOrder">
+          <option value="updated_desc">更新日（新しい順）</option>
+          <option value="updated_asc">更新日（古い順）</option>
+          <option value="purchase_desc">仕入額（高い順）</option>
+          <option value="purchase_asc">仕入額（低い順）</option>
+          <option value="sale_desc">売上（高い順）</option>
+          <option value="sale_asc">売上（低い順）</option>
+          <option value="profit_desc">損益（高い順）</option>
+          <option value="profit_asc">損益（低い順）</option>
+          <option value="margin_desc">粗利率（高い順）</option>
+          <option value="margin_asc">粗利率（低い順）</option>
+        </select>
+      </div>
+      <div class="filter-bar">
         <input type="search" id="searchBox" placeholder="商品名で検索">
       </div>
       <ul id="productList" class="product-list"></ul>

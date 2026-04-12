@@ -30,6 +30,7 @@
 
   // 商品フィルタ
   document.getElementById('statusFilter').addEventListener('change', ProductsUI.render);
+  document.getElementById('sortOrder').addEventListener('change', ProductsUI.render);
   document.getElementById('searchBox').addEventListener('input', ProductsUI.render);
 
   // レポート初期化
