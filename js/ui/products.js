@@ -242,10 +242,84 @@ const ProductsUI = (() => {
     overlay.className = 'image-viewer';
     overlay.innerHTML = `
       <button class="image-viewer-close" aria-label="閉じる">×</button>
-      <img src="${url}" alt="">
+      <img src="${url}" alt="" draggable="false">
     `;
-    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-    overlay.querySelector('.image-viewer-close').onclick = () => overlay.remove();
+    const img = overlay.querySelector('img');
+    const closeBtn = overlay.querySelector('.image-viewer-close');
+
+    let scale = 1, posX = 0, posY = 0;
+    let startDist = 0, startScale = 1;
+    let startX = 0, startY = 0, startPosX = 0, startPosY = 0;
+    let isPanning = false;
+
+    function applyTransform() {
+      img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    }
+
+    // ピンチズーム
+    overlay.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        startDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        startScale = scale;
+      } else if (e.touches.length === 1 && scale > 1) {
+        isPanning = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startPosX = posX;
+        startPosY = posY;
+      }
+    }, { passive: false });
+
+    overlay.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        scale = Math.min(5, Math.max(1, startScale * (dist / startDist)));
+        if (scale <= 1) { posX = 0; posY = 0; }
+        applyTransform();
+      } else if (e.touches.length === 1 && isPanning && scale > 1) {
+        e.preventDefault();
+        posX = startPosX + (e.touches[0].clientX - startX);
+        posY = startPosY + (e.touches[0].clientY - startY);
+        applyTransform();
+      }
+    }, { passive: false });
+
+    overlay.addEventListener('touchend', (e) => {
+      isPanning = false;
+      if (scale <= 1) { scale = 1; posX = 0; posY = 0; applyTransform(); }
+    });
+
+    // ダブルタップでズームイン/リセット
+    let lastTap = 0;
+    img.addEventListener('touchend', (e) => {
+      if (e.touches.length > 0) return;
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        e.preventDefault();
+        if (scale > 1) {
+          scale = 1; posX = 0; posY = 0;
+        } else {
+          scale = 2.5;
+        }
+        applyTransform();
+      }
+      lastTap = now;
+    });
+
+    // 背景タップで閉じる（ズーム中は閉じない）
+    overlay.onclick = (e) => {
+      if (e.target === overlay && scale <= 1) overlay.remove();
+    };
+    closeBtn.onclick = () => overlay.remove();
+
     document.body.appendChild(overlay);
   }
 
