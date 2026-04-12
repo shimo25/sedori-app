@@ -25,7 +25,7 @@ const Reports = (() => {
   function init() {
     const now = new Date();
     document.getElementById('reportYear').value = now.getFullYear();
-    document.getElementById('reportMonth').value = now.getMonth() + 1;
+    document.getElementById('reportMonth').value = 0; // 年間表示をデフォルトに
 
     document.getElementById('reportYear').addEventListener('change', refresh);
     document.getElementById('reportMonth').addEventListener('change', refresh);
