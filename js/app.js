@@ -30,8 +30,8 @@
 
   // 商品フィルタ
   document.getElementById('statusFilter').addEventListener('change', ProductsUI.render);
-  document.getElementById('sortOrder').addEventListener('change', ProductsUI.render);
   document.getElementById('searchBox').addEventListener('input', ProductsUI.render);
+  // sortOrder は products.js 内で動的生成＆リスナー登録
 
   // レポート初期化
   Reports.init();

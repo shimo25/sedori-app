@@ -4,7 +4,34 @@
 const ProductsUI = (() => {
   let _objectURLs = []; // サムネ用、ビュー切替時にrevoke
 
+  function ensureSortOrder() {
+    if (document.getElementById('sortOrder')) return;
+    const sel = document.createElement('select');
+    sel.id = 'sortOrder';
+    const opts = [
+      ['updated_desc', '更新日（新しい順）'], ['updated_asc', '更新日（古い順）'],
+      ['purchase_desc', '仕入額（高い順）'], ['purchase_asc', '仕入額（低い順）'],
+      ['sale_desc', '売上（高い順）'], ['sale_asc', '売上（低い順）'],
+      ['profit_desc', '損益（高い順）'], ['profit_asc', '損益（低い順）'],
+      ['margin_desc', '粗利率（高い順）'], ['margin_asc', '粗利率（低い順）']
+    ];
+    opts.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+    sel.addEventListener('change', render);
+    // フィルターバーの先頭行に挿入（statusFilterの後ろ）
+    const bar = document.getElementById('statusFilter').parentElement;
+    const searchBox = document.getElementById('searchBox');
+    // 検索ボックスが同じ行にあれば分離
+    if (searchBox && searchBox.parentElement === bar) {
+      const bar2 = document.createElement('div');
+      bar2.className = 'filter-bar';
+      bar2.appendChild(searchBox);
+      bar.after(bar2);
+    }
+    bar.appendChild(sel);
+  }
+
   async function render() {
+    ensureSortOrder();
     const list = document.getElementById('productList');
     const empty = document.getElementById('emptyProducts');
     // 既存の ObjectURL を解放
