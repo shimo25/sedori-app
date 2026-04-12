@@ -256,16 +256,22 @@ const ProductsUI = (() => {
       img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
     }
 
-    // ピンチズーム
+    // iOS Safari のデフォルトジェスチャー（ページズーム）を完全ブロック
+    overlay.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    overlay.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    overlay.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+    // 全タッチイベントのデフォルト動作を抑制
     overlay.addEventListener('touchstart', (e) => {
+      e.preventDefault();
       if (e.touches.length === 2) {
-        e.preventDefault();
         startDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
         startScale = scale;
-      } else if (e.touches.length === 1 && scale > 1) {
+        isPanning = false;
+      } else if (e.touches.length === 1) {
         isPanning = true;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
@@ -275,8 +281,8 @@ const ProductsUI = (() => {
     }, { passive: false });
 
     overlay.addEventListener('touchmove', (e) => {
+      e.preventDefault();
       if (e.touches.length === 2) {
-        e.preventDefault();
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -285,7 +291,6 @@ const ProductsUI = (() => {
         if (scale <= 1) { posX = 0; posY = 0; }
         applyTransform();
       } else if (e.touches.length === 1 && isPanning && scale > 1) {
-        e.preventDefault();
         posX = startPosX + (e.touches[0].clientX - startX);
         posY = startPosY + (e.touches[0].clientY - startY);
         applyTransform();
@@ -293,32 +298,34 @@ const ProductsUI = (() => {
     }, { passive: false });
 
     overlay.addEventListener('touchend', (e) => {
+      e.preventDefault();
       isPanning = false;
       if (scale <= 1) { scale = 1; posX = 0; posY = 0; applyTransform(); }
-    });
 
-    // ダブルタップでズームイン/リセット
-    let lastTap = 0;
-    img.addEventListener('touchend', (e) => {
-      if (e.touches.length > 0) return;
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        e.preventDefault();
-        if (scale > 1) {
-          scale = 1; posX = 0; posY = 0;
-        } else {
-          scale = 2.5;
+      // ダブルタップ判定
+      if (e.touches.length === 0) {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          if (scale > 1) {
+            scale = 1; posX = 0; posY = 0;
+          } else {
+            scale = 2.5;
+          }
+          applyTransform();
         }
-        applyTransform();
+        lastTap = now;
       }
-      lastTap = now;
-    });
+    }, { passive: false });
 
-    // 背景タップで閉じる（ズーム中は閉じない）
-    overlay.onclick = (e) => {
+    let lastTap = 0;
+
+    // 閉じる操作（タッチ＋クリック両対応）
+    function tryClose(e) {
       if (e.target === overlay && scale <= 1) overlay.remove();
-    };
-    closeBtn.onclick = () => overlay.remove();
+    }
+    overlay.addEventListener('click', tryClose);
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); overlay.remove(); });
+    closeBtn.addEventListener('touchend', (e) => { e.stopPropagation(); overlay.remove(); });
 
     document.body.appendChild(overlay);
   }
