@@ -4,6 +4,8 @@
 const ProductsUI = (() => {
   let _objectURLs = []; // サムネ用、ビュー切替時にrevoke
   let _marginFilter = null; // { lo, hi, label } レポートからのフィルタ
+  let _periodFilter = null; // { year, month, day, label } レポートからの期間フィルタ
+  let _statusFilter = null; // { key, label } レポートからのステータスフィルタ
 
   function ensureSortOrder() {
     if (document.getElementById('sortOrder')) return;
@@ -57,10 +59,34 @@ const ProductsUI = (() => {
       });
     }
 
+    // 期間フィルタ（レポートからの遷移時）
+    if (_periodFilter) {
+      products = products.filter(p => {
+        if (!p.saleDate) return false;
+        if (_periodFilter.day) {
+          // 日単位
+          const target = `${_periodFilter.year}-${String(_periodFilter.month).padStart(2,'0')}-${String(_periodFilter.day).padStart(2,'0')}`;
+          return p.saleDate.startsWith(target);
+        } else if (_periodFilter.month) {
+          // 月単位
+          const target = `${_periodFilter.year}-${String(_periodFilter.month).padStart(2,'0')}`;
+          return p.saleDate.startsWith(target);
+        } else {
+          // 年単位
+          return p.saleDate.startsWith(String(_periodFilter.year));
+        }
+      });
+    }
+
+    // ステータスフィルタ（レポートからの遷移時）
+    if (_statusFilter) {
+      products = products.filter(p => p.status === _statusFilter.key);
+    }
+
     products.sort(getSortFn(sortKey));
 
-    // マージンフィルタ表示バッジ
-    renderMarginBadge();
+    // レポートフィルタ表示バッジ
+    renderFilterBadge();
 
     list.innerHTML = '';
     if (products.length === 0) { empty.classList.remove('hidden'); return; }
@@ -386,21 +412,48 @@ const ProductsUI = (() => {
   }
 
   function filterByMargin(lo, hi, label) {
+    clearAllReportFilters();
     _marginFilter = { lo, hi, label };
-    // ソートを粗利率順に
     const sortEl = document.getElementById('sortOrder');
     if (sortEl) sortEl.value = 'margin_desc';
     render();
   }
 
-  function clearMarginFilter() {
-    _marginFilter = null;
+  function filterByPeriod(year, month, day, label) {
+    clearAllReportFilters();
+    _periodFilter = { year, month, day, label };
+    const sortEl = document.getElementById('sortOrder');
+    if (sortEl) sortEl.value = 'sale_desc';
     render();
   }
 
-  function renderMarginBadge() {
+  function filterByStatusFromReport(key, label) {
+    clearAllReportFilters();
+    _statusFilter = { key, label };
+    // ステータスドロップダウンも合わせる
+    const statusEl = document.getElementById('statusFilter');
+    if (statusEl) statusEl.value = key;
+    render();
+  }
+
+  function clearAllReportFilters() {
+    _marginFilter = null;
+    _periodFilter = null;
+    _statusFilter = null;
+  }
+
+  function clearReportFilter() {
+    clearAllReportFilters();
+    // ステータスドロップダウンを「全て」に戻す
+    const statusEl = document.getElementById('statusFilter');
+    if (statusEl) statusEl.value = 'all';
+    render();
+  }
+
+  function renderFilterBadge() {
     let badge = document.getElementById('marginFilterBadge');
-    if (!_marginFilter) {
+    const activeFilter = _marginFilter || _periodFilter || _statusFilter;
+    if (!activeFilter) {
       if (badge) badge.remove();
       return;
     }
@@ -411,8 +464,16 @@ const ProductsUI = (() => {
       const bar = document.getElementById('statusFilter').parentElement;
       bar.parentElement.insertBefore(badge, bar);
     }
-    badge.innerHTML = `粗利率 <b>${_marginFilter.label}</b> で絞り込み中 <button id="btnClearMargin">× 解除</button>`;
-    badge.querySelector('#btnClearMargin').onclick = clearMarginFilter;
+    let text = '';
+    if (_marginFilter) {
+      text = `粗利率 <b>${_marginFilter.label}</b> で絞り込み中`;
+    } else if (_periodFilter) {
+      text = `<b>${_periodFilter.label}</b> の売却商品を表示中`;
+    } else if (_statusFilter) {
+      text = `ステータス <b>${_statusFilter.label}</b> で絞り込み中`;
+    }
+    badge.innerHTML = `${text} <button id="btnClearMargin">× 解除</button>`;
+    badge.querySelector('#btnClearMargin').onclick = clearReportFilter;
   }
 
   function getSortFn(key) {
@@ -434,5 +495,5 @@ const ProductsUI = (() => {
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  return { render, openForm, calcProfit, filterByMargin };
+  return { render, openForm, calcProfit, filterByMargin, filterByPeriod, filterByStatusFromReport };
 })();

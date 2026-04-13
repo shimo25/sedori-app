@@ -157,6 +157,30 @@ const Reports = (() => {
       },
       options: chartOpts('¥')
     });
+
+    // ダブルタップ → その月/日の取引一覧へ
+    attachDoubleTap('chartTrend', 'trend', 'x', (idx, onClose) => {
+      const label = ts.labels[idx];
+      const salesVal = ts.sales[idx];
+      const profitVal = ts.profit[idx];
+      let year = period.year, month = 0, day = 0;
+      if (period.month === 0) {
+        month = idx + 1; // 1月〜12月
+      } else {
+        month = period.month;
+        day = idx + 1; // 1日〜末日
+      }
+      const periodLabel = period.month === 0
+        ? `${year}年${month}月`
+        : `${year}年${month}月${day}日`;
+      showChartJumpPopup(
+        periodLabel,
+        `<p>売上: <b>${yen(salesVal)}</b> ／ 利益: <b>${yen(profitVal)}</b></p>
+         <p>この期間の売却商品一覧を表示しますか？</p>`,
+        () => { ProductsUI.filterByPeriod(year, month, day, periodLabel); switchView('products'); },
+        onClose
+      );
+    });
   }
 
   // ---------- ③ 経費カテゴリ別ドーナツ ----------
@@ -240,6 +264,19 @@ const Reports = (() => {
         }
       }
     });
+
+    // ダブルタップ → そのステータスの商品一覧へ
+    attachDoubleTap('chartStatus', 'status', 'y', (idx, onClose) => {
+      const st = STATUSES[idx];
+      if (!st || entries[idx].count === 0) return;
+      showChartJumpPopup(
+        `${st.label}`,
+        `<p>該当商品: <b>${entries[idx].count}件</b></p>
+         <p>この商品一覧を表示しますか？</p>`,
+        () => { ProductsUI.filterByStatusFromReport(st.key, st.label); switchView('products'); },
+        onClose
+      );
+    });
   }
 
   // ---------- ⑥ 累積利益カーブ ----------
@@ -271,6 +308,30 @@ const Reports = (() => {
         }]
       },
       options: chartOpts('¥')
+    });
+
+    // ダブルタップ → その月/日の取引一覧へ
+    attachDoubleTap('chartCumProfit', 'cumProfit', 'x', (idx, onClose) => {
+      const label = ts.labels[idx];
+      const cumVal = ts.cumProfit[idx];
+      const profitVal = ts.profit[idx];
+      let year = period.year, month = 0, day = 0;
+      if (period.month === 0) {
+        month = idx + 1;
+      } else {
+        month = period.month;
+        day = idx + 1;
+      }
+      const periodLabel = period.month === 0
+        ? `${year}年${month}月`
+        : `${year}年${month}月${day}日`;
+      showChartJumpPopup(
+        periodLabel,
+        `<p>当期利益: <b>${yen(profitVal)}</b> ／ 累積: <b>${yen(cumVal)}</b></p>
+         <p>この期間の売却商品一覧を表示しますか？</p>`,
+        () => { ProductsUI.filterByPeriod(year, month, day, periodLabel); switchView('products'); },
+        onClose
+      );
     });
   }
 
@@ -334,7 +395,7 @@ const Reports = (() => {
       // ポップアップ閉じ直後はタップを無視（イベント伝播防止）
       if (Date.now() - _popupCooldown < 600) { lastTapIdx = -1; return; }
       // ポップアップが開いている間はタップを無視
-      if (document.getElementById('marginJumpPopup')) return;
+      if (document.getElementById('chartJumpPopup')) return;
       const idx = getColumnIndex(e);
       if (idx < 0 || s.marginDist[idx] === 0) { lastTapIdx = -1; return; }
       const now = Date.now();
@@ -346,7 +407,12 @@ const Reports = (() => {
         const hi = bucketEdges[idx + 1];
         const label = labels[idx] + '%';
         const count = s.marginDist[idx];
-        showMarginJumpPopup(label, count, lo, hi, () => { _popupCooldown = Date.now(); });
+        showChartJumpPopup(
+          `粗利率 ${label}`,
+          `<p>該当商品: <b>${count}件</b></p><p>この範囲の商品一覧を表示しますか？</p>`,
+          () => { ProductsUI.filterByMargin(lo, hi, label); switchView('products'); },
+          () => { _popupCooldown = Date.now(); }
+        );
       } else {
         lastTapIdx = idx;
         lastTapTime = now;
@@ -356,20 +422,24 @@ const Reports = (() => {
     canvas.addEventListener('click', handleTap);
   }
 
-  function showMarginJumpPopup(label, count, lo, hi, onClose) {
+  /**
+   * 汎用チャートジャンプポップアップ
+   * @param {string} title - ポップアップタイトル
+   * @param {string} body  - 本文HTML
+   * @param {Function} onGo - 「商品一覧へ」押下時のコールバック
+   * @param {Function} onClose - ポップアップ閉じ後のコールバック（クールダウン用）
+   */
+  function showChartJumpPopup(title, body, onGo, onClose) {
     // 既存のポップアップをすべて削除（安全策）
-    document.querySelectorAll('#marginJumpPopup').forEach(el => el.remove());
+    document.querySelectorAll('#chartJumpPopup').forEach(el => el.remove());
 
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
-    overlay.id = 'marginJumpPopup';
+    overlay.id = 'chartJumpPopup';
     overlay.innerHTML = `
       <div class="modal">
-        <div class="modal-header"><h2>粗利率 ${label}</h2></div>
-        <div class="modal-body">
-          <p>該当商品: <b>${count}件</b></p>
-          <p>この範囲の商品一覧を表示しますか？</p>
-        </div>
+        <div class="modal-header"><h2>${title}</h2></div>
+        <div class="modal-body">${body}</div>
         <div class="modal-footer">
           <button class="btn" data-v="cancel">閉じる</button>
           <button class="btn btn-primary" data-v="go">商品一覧へ</button>
@@ -387,36 +457,68 @@ const Reports = (() => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) closePopup(e);
     });
-    // タッチイベントでも伝播を止める（iOS対策）
     overlay.addEventListener('touchend', (e) => {
-      if (e.target === overlay) {
-        e.preventDefault();
-        closePopup(e);
-      }
+      if (e.target === overlay) { e.preventDefault(); closePopup(e); }
     }, { passive: false });
 
     overlay.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const action = btn.dataset.v;
         closePopup(e);
-        if (action === 'go') {
-          ProductsUI.filterByMargin(lo, hi, label);
-          switchView('products');
-        }
+        if (action === 'go') onGo();
       });
-      // ボタンのタッチイベントでも伝播を止める（iOS対策）
       btn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         const action = btn.dataset.v;
         overlay.remove();
         if (onClose) onClose();
-        if (action === 'go') {
-          ProductsUI.filterByMargin(lo, hi, label);
-          switchView('products');
-        }
+        if (action === 'go') onGo();
       }, { passive: false });
+    });
+  }
+
+  /**
+   * 汎用ダブルタップハンドラをcanvasに付与
+   * @param {string} canvasId - canvas要素のID
+   * @param {string} chartKey - _charts内のキー
+   * @param {string} axis - 'x' or 'y'（横棒の場合は'y'）
+   * @param {Function} onDoubleTap - (index) => void
+   */
+  function attachDoubleTap(canvasId, chartKey, axis, onDoubleTap) {
+    const canvas = document.getElementById(canvasId);
+    let lastTime = 0, lastIdx = -1, cooldown = 0;
+
+    function getIndex(e) {
+      const chart = _charts[chartKey];
+      if (!chart) return -1;
+      const rect = canvas.getBoundingClientRect();
+      const scale = chart.scales[axis];
+      if (!scale) return -1;
+      const coord = axis === 'x'
+        ? (e.clientX || e.pageX) - rect.left
+        : (e.clientY || e.pageY) - rect.top;
+      const labels = scale.ticks;
+      for (let i = 0; i < labels.length; i++) {
+        const pos = scale.getPixelForValue(i);
+        const total = axis === 'x' ? scale.width : scale.height;
+        const half = (total / labels.length) / 2;
+        if (coord >= pos - half && coord <= pos + half) return i;
+      }
+      return -1;
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (Date.now() - cooldown < 600) { lastIdx = -1; return; }
+      if (document.getElementById('chartJumpPopup')) return;
+      const idx = getIndex(e);
+      if (idx < 0) { lastIdx = -1; return; }
+      const now = Date.now();
+      if (idx === lastIdx && now - lastTime < 400) {
+        lastIdx = -1; lastTime = 0;
+        onDoubleTap(idx, () => { cooldown = Date.now(); });
+      } else {
+        lastIdx = idx; lastTime = now;
+      }
     });
   }
 
