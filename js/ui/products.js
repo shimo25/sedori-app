@@ -6,6 +6,7 @@ const ProductsUI = (() => {
   let _marginFilter = null; // { lo, hi, label } レポートからのフィルタ
   let _periodFilter = null; // { year, month, day, label } レポートからの期間フィルタ
   let _statusFilter = null; // { key, label } レポートからのステータスフィルタ
+  let _pendingSort = null;  // 次回render時に適用するソートキー
 
   function ensureSortOrder() {
     if (document.getElementById('sortOrder')) return;
@@ -35,6 +36,18 @@ const ProductsUI = (() => {
 
   async function render() {
     ensureSortOrder();
+
+    // レポートからのフィルタ設定を反映
+    if (_pendingSort) {
+      const sortEl = document.getElementById('sortOrder');
+      if (sortEl) sortEl.value = _pendingSort;
+      _pendingSort = null;
+    }
+    if (_statusFilter) {
+      const statusEl = document.getElementById('statusFilter');
+      if (statusEl) statusEl.value = _statusFilter.key;
+    }
+
     const list = document.getElementById('productList');
     const empty = document.getElementById('emptyProducts');
     // 既存の ObjectURL を解放
@@ -415,26 +428,19 @@ const ProductsUI = (() => {
   function filterByMargin(lo, hi, label) {
     clearAllReportFilters();
     _marginFilter = { lo, hi, label };
-    const sortEl = document.getElementById('sortOrder');
-    if (sortEl) sortEl.value = 'margin_desc';
-    render();
+    // ソートは次回renderで反映（switchViewがrender()を呼ぶ）
+    _pendingSort = 'margin_desc';
   }
 
   function filterByPeriod(year, month, day, label) {
     clearAllReportFilters();
     _periodFilter = { year, month, day, label };
-    const sortEl = document.getElementById('sortOrder');
-    if (sortEl) sortEl.value = 'sale_desc';
-    render();
+    _pendingSort = 'sale_desc';
   }
 
   function filterByStatusFromReport(key, label) {
     clearAllReportFilters();
     _statusFilter = { key, label };
-    // ステータスドロップダウンも合わせる
-    const statusEl = document.getElementById('statusFilter');
-    if (statusEl) statusEl.value = key;
-    render();
   }
 
   function clearAllReportFilters() {
