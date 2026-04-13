@@ -280,7 +280,7 @@ const Reports = (() => {
     destroy('margin');
 
     const labels = ['<-50', '-50~-40', '-40~-30', '-30~-20', '-20~-10', '-10~0',
-                    '0~10', '10~20', '20~30', '30~40', '40~50', '50~60', '60~100', '100+'];
+                    '0~10', '10~20', '20~30', '30~40', '40~50', '50~60', '60~100'];
     const colors = s.marginDist.map((_, i) => {
       if (i <= 5) return ChartTheme.alpha(ChartTheme.get('loss'), 0.4 + i * 0.1);
       return ChartTheme.alpha(ChartTheme.get('profit'), 0.3 + (i - 6) * 0.08);

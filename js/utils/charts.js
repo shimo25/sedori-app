@@ -187,13 +187,14 @@ const DataAgg = (() => {
       byStatus[p.status] = (byStatus[p.status] || 0) + 1;
     }
 
-    // 利益率の分布（不等間隔バケット）
-    // [<-50, -50~-40, -40~-30, -30~-20, -20~-10, -10~0, 0~10, 10~20, 20~30, 30~40, 40~50, 50~60, 60~100, 100+]
-    const bucketEdges = [-Infinity, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 100, Infinity];
-    const dist = new Array(14).fill(0);
+    // 利益率の分布（上限100%）
+    // [<-50, -50~-40, -40~-30, -30~-20, -20~-10, -10~0, 0~10, 10~20, 20~30, 30~40, 40~50, 50~60, 60~100]
+    const bucketEdges = [-Infinity, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60];
+    const dist = new Array(13).fill(0);
     for (const m of margins) {
-      for (let i = bucketEdges.length - 2; i >= 0; i--) {
-        if (m >= bucketEdges[i]) { dist[i]++; break; }
+      const clamped = Math.min(m, 99.9); // 上限100%
+      for (let i = bucketEdges.length - 1; i >= 0; i--) {
+        if (clamped >= bucketEdges[i]) { dist[i]++; break; }
       }
     }
 
