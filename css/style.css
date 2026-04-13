@@ -145,18 +145,13 @@ main {
 
 /* ===== フォーム ===== */
 .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-.form-row > label { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 13px; color: var(--text-muted); overflow: hidden; }
+.form-row > label { flex: 1 1 80px; min-width: 0; display: flex; flex-direction: column; font-size: 13px; color: var(--text-muted); overflow: hidden; }
 .form-row > label > input, .form-row > label > select, .form-row > label > textarea {
   margin-top: 4px; padding: 10px; border: 1px solid var(--border); border-radius: 10px;
   background: #fff; color: var(--text); width: 100%; box-sizing: border-box;
   max-width: 100%; overflow: hidden;
 }
-/* iOS date inputの内部要素が溢れないように */
-.form-row > label > input[type="date"] {
-  padding: 10px 4px; font-size: 14px;
-  -webkit-min-logical-width: 0; /* iOS Safari の最小幅制約を解除 */
-  min-width: 0;
-}
+/* 日付入力はフルWidthの.fieldで使うのでform-row内の特別対応は不要 */
 .form-row > label > textarea { min-height: 80px; resize: vertical; }
 /* 手数料プリセット行: 名称・手数料・削除ボタンを1行に収める */
 .form-row.preset-row { flex-wrap: nowrap; align-items: flex-end; gap: 6px; }

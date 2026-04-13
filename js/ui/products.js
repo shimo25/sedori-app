@@ -150,33 +150,34 @@ const ProductsUI = (() => {
         <label>商品名 *</label>
         <input type="text" id="f_name" value="${escapeAttr(p.name)}" required>
       </div>
-      <div class="form-row">
-        <label>仕入日 *<input type="date" id="f_purchaseDate" value="${p.purchaseDate}"></label>
-        <label>数量 *<input type="number" id="f_quantity" value="${p.quantity}" min="1"></label>
+      <div class="field">
+        <label>仕入日 *</label>
+        <input type="date" id="f_purchaseDate" value="${p.purchaseDate}">
       </div>
       <div class="form-row">
+        <label>数量 *<input type="number" id="f_quantity" value="${p.quantity}" min="1"></label>
         <label>仕入額(1点) *<input type="number" id="f_purchasePrice" value="${p.purchasePrice}" min="0"></label>
         <label>仕入先<input type="text" id="f_purchaseFrom" value="${escapeAttr(p.purchaseFrom)}"></label>
       </div>
-      <div class="field">
-        <label>ステータス</label>
-        <select id="f_status">
-          ${STATUSES.map(s => `<option value="${s.key}" ${p.status===s.key?'selected':''}>${s.label}</option>`).join('')}
-        </select>
-      </div>
       <div class="form-row">
+        <label>ステータス<select id="f_status">
+          ${STATUSES.map(s => `<option value="${s.key}" ${p.status===s.key?'selected':''}>${s.label}</option>`).join('')}
+        </select></label>
         <label>販売先<select id="f_platform">
           ${feePresets.map(fp => `<option value="${fp.id}" data-rate="${fp.rate}" ${p.platform===fp.id?'selected':''}>${fp.name}</option>`).join('')}
         </select></label>
+      </div>
+      <div class="form-row">
         <label>手数料率(%)<input type="number" id="f_feeRate" value="${p.feeRate ?? 10}" min="0" step="0.1"></label>
+        <label>送料(自己負担)<input type="number" id="f_shippingCost" value="${p.shippingCost ?? 0}" min="0"></label>
       </div>
       <div class="form-row">
         <label>出品価格<input type="number" id="f_listPrice" value="${p.listPrice ?? ''}" min="0"></label>
         <label>販売価格<input type="number" id="f_salePrice" value="${p.salePrice ?? ''}" min="0"></label>
       </div>
-      <div class="form-row">
-        <label>販売日<input type="date" id="f_saleDate" value="${p.saleDate ?? ''}"></label>
-        <label>送料(自己負担)<input type="number" id="f_shippingCost" value="${p.shippingCost ?? 0}" min="0"></label>
+      <div class="field">
+        <label>販売日</label>
+        <input type="date" id="f_saleDate" value="${p.saleDate ?? ''}">
       </div>
       <div class="field">
         <label>メモ</label>
