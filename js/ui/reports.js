@@ -314,6 +314,7 @@ const Reports = (() => {
     const canvas = document.getElementById('chartMargin');
     let lastTapTime = 0;
     let lastTapIdx = -1;
+    let _popupCooldown = 0; // ポップアップ閉じ後のクールダウン
 
     function getColumnIndex(e) {
       // X軸の位置からバケットを判定（棒の高さに関係なく列全体が対象）
@@ -330,6 +331,10 @@ const Reports = (() => {
     }
 
     function handleTap(e) {
+      // ポップアップ閉じ直後はタップを無視（イベント伝播防止）
+      if (Date.now() - _popupCooldown < 600) { lastTapIdx = -1; return; }
+      // ポップアップが開いている間はタップを無視
+      if (document.getElementById('marginJumpPopup')) return;
       const idx = getColumnIndex(e);
       if (idx < 0 || s.marginDist[idx] === 0) { lastTapIdx = -1; return; }
       const now = Date.now();
@@ -341,7 +346,7 @@ const Reports = (() => {
         const hi = bucketEdges[idx + 1];
         const label = labels[idx] + '%';
         const count = s.marginDist[idx];
-        showMarginJumpPopup(label, count, lo, hi);
+        showMarginJumpPopup(label, count, lo, hi, () => { _popupCooldown = Date.now(); });
       } else {
         lastTapIdx = idx;
         lastTapTime = now;
@@ -351,9 +356,10 @@ const Reports = (() => {
     canvas.addEventListener('click', handleTap);
   }
 
-  function showMarginJumpPopup(label, count, lo, hi) {
-    // 既にポップアップが開いていたら重複させない
-    if (document.getElementById('marginJumpPopup')) return;
+  function showMarginJumpPopup(label, count, lo, hi, onClose) {
+    // 既存のポップアップをすべて削除（安全策）
+    document.querySelectorAll('#marginJumpPopup').forEach(el => el.remove());
+
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.id = 'marginJumpPopup';
@@ -370,15 +376,47 @@ const Reports = (() => {
         </div>
       </div>`;
     document.getElementById('modalRoot').appendChild(overlay);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    function closePopup(e) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      overlay.remove();
+      if (onClose) onClose();
+    }
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePopup(e);
+    });
+    // タッチイベントでも伝播を止める（iOS対策）
+    overlay.addEventListener('touchend', (e) => {
+      if (e.target === overlay) {
+        e.preventDefault();
+        closePopup(e);
+      }
+    }, { passive: false });
+
     overlay.querySelectorAll('button').forEach(btn => {
-      btn.onclick = () => {
-        overlay.remove();
-        if (btn.dataset.v === 'go') {
+      btn.addEventListener('click', (e) => {
+        const action = btn.dataset.v;
+        closePopup(e);
+        if (action === 'go') {
           ProductsUI.filterByMargin(lo, hi, label);
           switchView('products');
         }
-      };
+      });
+      // ボタンのタッチイベントでも伝播を止める（iOS対策）
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        const action = btn.dataset.v;
+        overlay.remove();
+        if (onClose) onClose();
+        if (action === 'go') {
+          ProductsUI.filterByMargin(lo, hi, label);
+          switchView('products');
+        }
+      }, { passive: false });
     });
   }
 
