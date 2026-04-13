@@ -151,7 +151,12 @@ main {
   background: #fff; color: var(--text); width: 100%; box-sizing: border-box;
   max-width: 100%; overflow: hidden;
 }
-/* 日付入力はフルWidthの.fieldで使うのでform-row内の特別対応は不要 */
+/* 日付入力: iOSのデフォルト装飾を抑えて他のinputと同じ高さに揃える */
+input[type="date"] {
+  -webkit-appearance: none; appearance: none;
+  font-size: 14px; text-align: left;
+  min-height: 0; line-height: normal;
+}
 .form-row > label > textarea { min-height: 80px; resize: vertical; }
 /* 手数料プリセット行: 名称・手数料・削除ボタンを1行に収める */
 .form-row.preset-row { flex-wrap: nowrap; align-items: flex-end; gap: 6px; }
