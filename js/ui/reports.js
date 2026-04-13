@@ -352,8 +352,11 @@ const Reports = (() => {
   }
 
   function showMarginJumpPopup(label, count, lo, hi) {
+    // 既にポップアップが開いていたら重複させない
+    if (document.getElementById('marginJumpPopup')) return;
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
+    overlay.id = 'marginJumpPopup';
     overlay.innerHTML = `
       <div class="modal">
         <div class="modal-header"><h2>粗利率 ${label}</h2></div>

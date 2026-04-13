@@ -1,7 +1,7 @@
 /**
  * Service Worker - アプリシェルのキャッシュによるオフライン動作
  */
-const CACHE_NAME = 'sedori-app-v21';
+const CACHE_NAME = 'sedori-app-v22';
 const CACHE_FILES = [
   './',
   './index.html',
