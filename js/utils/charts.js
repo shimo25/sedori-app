@@ -187,16 +187,14 @@ const DataAgg = (() => {
       byStatus[p.status] = (byStatus[p.status] || 0) + 1;
     }
 
-    // 利益率の分布（10% 刻み: -50%以下, -50〜-40, ..., 90〜100, 100%超）
-    // バケット: 14 個（< -50, [-50,-40), ..., [90,100), >=100）
+    // 利益率の分布（不等間隔バケット）
+    // [<-50, -50~-40, -40~-30, -30~-20, -20~-10, -10~0, 0~10, 10~20, 20~30, 30~40, 40~50, 50~60, 60~100, 100+]
+    const bucketEdges = [-Infinity, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 100, Infinity];
     const dist = new Array(14).fill(0);
     for (const m of margins) {
-      let idx;
-      if (m < -50) idx = 0;
-      else if (m >= 100) idx = 13;
-      else idx = Math.floor((m + 50) / 10) + 1;
-      idx = Math.max(0, Math.min(13, idx));
-      dist[idx]++;
+      for (let i = bucketEdges.length - 2; i >= 0; i--) {
+        if (m >= bucketEdges[i]) { dist[i]++; break; }
+      }
     }
 
     const grossProfit = sales - cost;
