@@ -371,56 +371,20 @@ const Reports = (() => {
       }
     });
 
-    // ダブルタップで商品一覧へ遷移
-    const canvas = document.getElementById('chartMargin');
-    canvas.style.touchAction = 'manipulation'; // iOSダブルタップズーム防止
-    let lastTapTime = 0;
-    let lastTapIdx = -1;
-    let _popupCooldown = 0; // ポップアップ閉じ後のクールダウン
-
-    function getColumnIndex(e) {
-      // X軸の位置からバケットを判定（棒の高さに関係なく列全体が対象）
-      const chart = _charts.margin;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX || e.pageX) - rect.left;
-      const xScale = chart.scales.x;
-      for (let i = 0; i < labels.length; i++) {
-        const pos = xScale.getPixelForValue(i);
-        const halfWidth = (xScale.width / labels.length) / 2;
-        if (x >= pos - halfWidth && x <= pos + halfWidth) return i;
-      }
-      return -1;
-    }
-
-    function handleTap(e) {
-      // ポップアップ閉じ直後はタップを無視（イベント伝播防止）
-      if (Date.now() - _popupCooldown < 600) { lastTapIdx = -1; return; }
-      // ポップアップが開いている間はタップを無視
-      if (document.getElementById('chartJumpPopup')) return;
-      const idx = getColumnIndex(e);
-      if (idx < 0 || s.marginDist[idx] === 0) { lastTapIdx = -1; return; }
-      const now = Date.now();
-      if (idx === lastTapIdx && now - lastTapTime < 400) {
-        // ダブルタップ成立
-        lastTapIdx = -1;
-        lastTapTime = 0;
-        const lo = bucketEdges[idx];
-        const hi = bucketEdges[idx + 1];
-        const label = labels[idx] + '%';
-        const count = s.marginDist[idx];
-        showChartJumpPopup(
-          `粗利率 ${label}`,
-          `<p>該当商品: <b>${count}件</b></p><p>この範囲の商品一覧を表示しますか？</p>`,
-          () => { ProductsUI.filterByMargin(lo, hi, label); switchView('products'); },
-          () => { _popupCooldown = Date.now(); }
-        );
-      } else {
-        lastTapIdx = idx;
-        lastTapTime = now;
-      }
-    }
-
-    canvas.addEventListener('click', handleTap);
+    // ダブルタップで商品一覧へ遷移（attachDoubleTapで統一管理）
+    attachDoubleTap('chartMargin', 'margin', 'x', labels.length, (idx, onClose) => {
+      if (s.marginDist[idx] === 0) return;
+      const lo = bucketEdges[idx];
+      const hi = bucketEdges[idx + 1];
+      const label = labels[idx] + '%';
+      const count = s.marginDist[idx];
+      showChartJumpPopup(
+        `粗利率 ${label}`,
+        `<p>該当商品: <b>${count}件</b></p><p>この範囲の商品一覧を表示しますか？</p>`,
+        () => { ProductsUI.filterByMargin(lo, hi, label); switchView('products'); },
+        onClose
+      );
+    });
   }
 
   /**
@@ -486,8 +450,17 @@ const Reports = (() => {
    * @param {number} dataCount - データ点の数（scale.ticksはiPhoneで間引かれるため実データ数を渡す）
    * @param {Function} onDoubleTap - (index, onClose) => void
    */
+  // 既存リスナーを管理するマップ（canvasId → { handler, abort }）
+  const _tapListeners = {};
+
   function attachDoubleTap(canvasId, chartKey, axis, dataCount, onDoubleTap) {
     const canvas = document.getElementById(canvasId);
+
+    // 前回のリスナーを削除（年変更時の二重登録を防止）
+    if (_tapListeners[canvasId]) {
+      canvas.removeEventListener('click', _tapListeners[canvasId]);
+    }
+
     let lastTime = 0, lastIdx = -1, cooldown = 0;
 
     // iOSのダブルタップズームを防止
@@ -502,7 +475,6 @@ const Reports = (() => {
       const coord = axis === 'x'
         ? (e.clientX || e.pageX) - rect.left
         : (e.clientY || e.pageY) - rect.top;
-      // scale.ticksではなくdataCountを使う（iPhoneでラベルが間引かれても全データ点を検出）
       for (let i = 0; i < dataCount; i++) {
         const pos = scale.getPixelForValue(i);
         const total = axis === 'x' ? scale.width : scale.height;
@@ -512,7 +484,7 @@ const Reports = (() => {
       return -1;
     }
 
-    canvas.addEventListener('click', (e) => {
+    function handler(e) {
       if (Date.now() - cooldown < 600) { lastIdx = -1; return; }
       if (document.getElementById('chartJumpPopup')) return;
       const idx = getIndex(e);
@@ -524,7 +496,10 @@ const Reports = (() => {
       } else {
         lastIdx = idx; lastTime = now;
       }
-    });
+    }
+
+    canvas.addEventListener('click', handler);
+    _tapListeners[canvasId] = handler;
   }
 
   // ---------- ⑧ 仕入元別売上（横棒） ----------
