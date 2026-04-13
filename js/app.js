@@ -66,6 +66,10 @@
       });
       // 起動時にも手動チェック（キャッシュ更新検知）
       reg.update().catch(() => {});
+      // アプリに戻ってきたときも更新チェック
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
     }
   }
 })();

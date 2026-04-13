@@ -1,7 +1,7 @@
 /**
- * Service Worker - アプリシェルのキャッシュによるオフライン動作
+ * Service Worker - ネットワーク優先キャッシュ（常に最新を取得）
  */
-const CACHE_NAME = 'sedori-app-v29';
+const CACHE_NAME = 'sedori-app-v30';
 const CACHE_FILES = [
   './',
   './index.html',
@@ -48,11 +48,12 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
+  // ネットワーク優先: まずサーバーから取得し、キャッシュも更新。失敗時のみキャッシュを返す
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       const copy = res.clone();
       caches.open(CACHE_NAME).then(c => c.put(e.request, copy));
       return res;
-    }).catch(() => cached))
+    }).catch(() => caches.match(e.request))
   );
 });
