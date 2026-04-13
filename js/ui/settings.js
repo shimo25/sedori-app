@@ -100,11 +100,11 @@ const SettingsUI = (() => {
     container.innerHTML = '';
     presets.forEach((p, i) => {
       const row = document.createElement('div');
-      row.className = 'form-row';
+      row.className = 'form-row preset-row';
       row.innerHTML = `
         <label>名称<input type="text" value="${escapeAttr(p.name)}" data-i="${i}" data-k="name"></label>
         <label>手数料(%)<input type="number" value="${p.rate}" data-i="${i}" data-k="rate" step="0.1"></label>
-        <label style="flex:0 0 60px;">&nbsp;<button class="btn btn-danger" data-del="${i}">削除</button></label>
+        <label>&nbsp;<button class="btn btn-danger" data-del="${i}">削除</button></label>
       `;
       container.appendChild(row);
     });
