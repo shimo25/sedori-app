@@ -3,6 +3,7 @@
  */
 const Dashboard = (() => {
   let _chart = null;
+  let _tapHandler = null;
 
   async function refresh() {
     const [products, expenses] = await Promise.all([DB.Products.list(), DB.Expenses.list()]);
@@ -77,6 +78,86 @@ const Dashboard = (() => {
         plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
         scales: { y: { beginAtZero: true, ticks: { callback: v => '¥' + v.toLocaleString() } } }
       }
+    });
+
+    // ダブルタップ → その月の売却商品一覧へ
+    const canvas = document.getElementById('chartMonthly');
+    canvas.style.touchAction = 'manipulation';
+    if (_tapHandler) canvas.removeEventListener('click', _tapHandler);
+
+    let lastTime = 0, lastIdx = -1, cooldown = 0;
+
+    _tapHandler = function(e) {
+      if (Date.now() - cooldown < 600) { lastIdx = -1; return; }
+      if (document.getElementById('chartJumpPopup')) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX || e.pageX) - rect.left;
+      const xScale = _chart.scales.x;
+      let idx = -1;
+      for (let i = 0; i < months.length; i++) {
+        const pos = xScale.getPixelForValue(i);
+        const half = (xScale.width / months.length) / 2;
+        if (x >= pos - half && x <= pos + half) { idx = i; break; }
+      }
+      if (idx < 0) { lastIdx = -1; return; }
+      const tapNow = Date.now();
+      if (idx === lastIdx && tapNow - lastTime < 400) {
+        lastIdx = -1; lastTime = 0;
+        // "2025-07" → year=2025, month=7
+        const year = Number(months[idx].slice(0, 4));
+        const month = Number(months[idx].slice(5));
+        const periodLabel = `${year}年${month}月`;
+        // ポップアップ表示
+        showDashJumpPopup(
+          periodLabel,
+          `<p>売上: <b>${yen(salesByMonth[idx])}</b> ／ 利益: <b>${yen(profitByMonth[idx])}</b></p>
+           <p>この期間の売却商品一覧を表示しますか？</p>`,
+          () => { ProductsUI.filterByPeriod(year, month, 0, periodLabel); switchView('products'); },
+          () => { cooldown = Date.now(); }
+        );
+      } else {
+        lastIdx = idx; lastTime = tapNow;
+      }
+    };
+    canvas.addEventListener('click', _tapHandler);
+  }
+
+  function showDashJumpPopup(title, body, onGo, onClose) {
+    document.querySelectorAll('#chartJumpPopup').forEach(el => el.remove());
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'chartJumpPopup';
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-header"><h2>${title}</h2></div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-footer">
+          <button class="btn" data-v="cancel">閉じる</button>
+          <button class="btn btn-primary" data-v="go">商品一覧へ</button>
+        </div>
+      </div>`;
+    document.getElementById('modalRoot').appendChild(overlay);
+
+    function closePopup(e) {
+      e.stopPropagation(); e.stopImmediatePropagation();
+      overlay.remove();
+      if (onClose) onClose();
+    }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closePopup(e); });
+    overlay.addEventListener('touchend', (e) => {
+      if (e.target === overlay) { e.preventDefault(); closePopup(e); }
+    }, { passive: false });
+    overlay.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = btn.dataset.v; closePopup(e);
+        if (action === 'go') onGo();
+      });
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        const action = btn.dataset.v; overlay.remove();
+        if (onClose) onClose();
+        if (action === 'go') onGo();
+      }, { passive: false });
     });
   }
 
