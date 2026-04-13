@@ -3,6 +3,7 @@
  */
 const ProductsUI = (() => {
   let _objectURLs = []; // サムネ用、ビュー切替時にrevoke
+  let _marginFilter = null; // { lo, hi, label } レポートからのフィルタ
 
   function ensureSortOrder() {
     if (document.getElementById('sortOrder')) return;
@@ -46,7 +47,20 @@ const ProductsUI = (() => {
     let products = await DB.Products.list();
     if (filter !== 'all') products = products.filter(p => p.status === filter);
     if (q) products = products.filter(p => p.name.toLowerCase().includes(q));
+
+    // マージンフィルタ（レポートからの遷移時）
+    if (_marginFilter) {
+      products = products.filter(p => {
+        if (!p.salePrice) return false;
+        const m = calcMarginNum(p);
+        return m >= _marginFilter.lo && m < _marginFilter.hi;
+      });
+    }
+
     products.sort(getSortFn(sortKey));
+
+    // マージンフィルタ表示バッジ
+    renderMarginBadge();
 
     list.innerHTML = '';
     if (products.length === 0) { empty.classList.remove('hidden'); return; }
@@ -371,6 +385,36 @@ const ProductsUI = (() => {
     return calcProfit(p) / p.salePrice * 100;
   }
 
+  function filterByMargin(lo, hi, label) {
+    _marginFilter = { lo, hi, label };
+    // ソートを粗利率順に
+    const sortEl = document.getElementById('sortOrder');
+    if (sortEl) sortEl.value = 'margin_desc';
+    render();
+  }
+
+  function clearMarginFilter() {
+    _marginFilter = null;
+    render();
+  }
+
+  function renderMarginBadge() {
+    let badge = document.getElementById('marginFilterBadge');
+    if (!_marginFilter) {
+      if (badge) badge.remove();
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'marginFilterBadge';
+      badge.className = 'margin-filter-badge';
+      const bar = document.getElementById('statusFilter').parentElement;
+      bar.parentElement.insertBefore(badge, bar);
+    }
+    badge.innerHTML = `粗利率 <b>${_marginFilter.label}</b> で絞り込み中 <button id="btnClearMargin">× 解除</button>`;
+    badge.querySelector('#btnClearMargin').onclick = clearMarginFilter;
+  }
+
   function getSortFn(key) {
     switch (key) {
       case 'updated_asc':   return (a, b) => (a.updatedAt || 0) - (b.updatedAt || 0);
@@ -390,5 +434,5 @@ const ProductsUI = (() => {
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  return { render, openForm, calcProfit };
+  return { render, openForm, calcProfit, filterByMargin };
 })();

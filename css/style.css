@@ -92,6 +92,16 @@ main {
   border-radius: 10px; background: #fff; font-size: 13px;
   min-width: 0;
 }
+.margin-filter-badge {
+  background: var(--primary); color: #fff; padding: 8px 14px;
+  border-radius: 10px; font-size: 13px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.margin-filter-badge button {
+  background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.5);
+  color: #fff; padding: 3px 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 8px;
+}
 .product-list, .expense-list { list-style: none; padding: 0; margin: 0; }
 .product-item {
   background: #fff; border-radius: var(--radius);

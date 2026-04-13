@@ -286,6 +286,9 @@ const Reports = (() => {
       return ChartTheme.alpha(ChartTheme.get('profit'), 0.3 + (i - 6) * 0.08);
     });
 
+    // バケット境界（products.jsのフィルタに渡す用）
+    const bucketEdges = [-Infinity, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 100];
+
     _charts.margin = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -305,6 +308,68 @@ const Reports = (() => {
           x: { ticks: { font: { size: 9 }, maxRotation: 45 } }
         }
       }
+    });
+
+    // ダブルタップで商品一覧へ遷移
+    const canvas = document.getElementById('chartMargin');
+    let lastTapTime = 0;
+    let lastTapIdx = -1;
+
+    function getBarIndex(e) {
+      const points = _charts.margin.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+      return points.length > 0 ? points[0].index : -1;
+    }
+
+    function handleTap(e) {
+      const idx = getBarIndex(e);
+      if (idx < 0 || s.marginDist[idx] === 0) { lastTapIdx = -1; return; }
+      const now = Date.now();
+      if (idx === lastTapIdx && now - lastTapTime < 400) {
+        // ダブルタップ成立
+        lastTapIdx = -1;
+        lastTapTime = 0;
+        const lo = bucketEdges[idx];
+        const hi = bucketEdges[idx + 1];
+        const label = labels[idx] + '%';
+        const count = s.marginDist[idx];
+        showMarginJumpPopup(label, count, lo, hi);
+      } else {
+        lastTapIdx = idx;
+        lastTapTime = now;
+      }
+    }
+
+    canvas.addEventListener('click', handleTap);
+    canvas.addEventListener('touchend', (e) => {
+      handleTap(e.changedTouches[0]);
+    }, { passive: true });
+  }
+
+  function showMarginJumpPopup(label, count, lo, hi) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-header"><h2>粗利率 ${label}</h2></div>
+        <div class="modal-body">
+          <p>該当商品: <b>${count}件</b></p>
+          <p>この範囲の商品一覧を表示しますか？</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-v="cancel">閉じる</button>
+          <button class="btn btn-primary" data-v="go">商品一覧へ</button>
+        </div>
+      </div>`;
+    document.getElementById('modalRoot').appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelectorAll('button').forEach(btn => {
+      btn.onclick = () => {
+        overlay.remove();
+        if (btn.dataset.v === 'go') {
+          ProductsUI.filterByMargin(lo, hi, label);
+          switchView('products');
+        }
+      };
     });
   }
 
