@@ -349,9 +349,6 @@ const Reports = (() => {
     }
 
     canvas.addEventListener('click', handleTap);
-    canvas.addEventListener('touchend', (e) => {
-      handleTap(e.changedTouches[0]);
-    }, { passive: true });
   }
 
   function showMarginJumpPopup(label, count, lo, hi) {
