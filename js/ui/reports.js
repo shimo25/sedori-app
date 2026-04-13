@@ -315,13 +315,22 @@ const Reports = (() => {
     let lastTapTime = 0;
     let lastTapIdx = -1;
 
-    function getBarIndex(e) {
-      const points = _charts.margin.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
-      return points.length > 0 ? points[0].index : -1;
+    function getColumnIndex(e) {
+      // X軸の位置からバケットを判定（棒の高さに関係なく列全体が対象）
+      const chart = _charts.margin;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX || e.pageX) - rect.left;
+      const xScale = chart.scales.x;
+      for (let i = 0; i < labels.length; i++) {
+        const pos = xScale.getPixelForValue(i);
+        const halfWidth = (xScale.width / labels.length) / 2;
+        if (x >= pos - halfWidth && x <= pos + halfWidth) return i;
+      }
+      return -1;
     }
 
     function handleTap(e) {
-      const idx = getBarIndex(e);
+      const idx = getColumnIndex(e);
       if (idx < 0 || s.marginDist[idx] === 0) { lastTapIdx = -1; return; }
       const now = Date.now();
       if (idx === lastTapIdx && now - lastTapTime < 400) {
