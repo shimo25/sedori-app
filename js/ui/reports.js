@@ -159,7 +159,7 @@ const Reports = (() => {
     });
 
     // ダブルタップ → その月/日の取引一覧へ
-    attachDoubleTap('chartTrend', 'trend', 'x', (idx, onClose) => {
+    attachDoubleTap('chartTrend', 'trend', 'x', ts.labels.length, (idx, onClose) => {
       const label = ts.labels[idx];
       const salesVal = ts.sales[idx];
       const profitVal = ts.profit[idx];
@@ -266,7 +266,7 @@ const Reports = (() => {
     });
 
     // ダブルタップ → そのステータスの商品一覧へ
-    attachDoubleTap('chartStatus', 'status', 'y', (idx, onClose) => {
+    attachDoubleTap('chartStatus', 'status', 'y', entries.length, (idx, onClose) => {
       const st = STATUSES[idx];
       if (!st || entries[idx].count === 0) return;
       showChartJumpPopup(
@@ -311,7 +311,7 @@ const Reports = (() => {
     });
 
     // ダブルタップ → その月/日の取引一覧へ
-    attachDoubleTap('chartCumProfit', 'cumProfit', 'x', (idx, onClose) => {
+    attachDoubleTap('chartCumProfit', 'cumProfit', 'x', ts.labels.length, (idx, onClose) => {
       const label = ts.labels[idx];
       const cumVal = ts.cumProfit[idx];
       const profitVal = ts.profit[idx];
@@ -373,6 +373,7 @@ const Reports = (() => {
 
     // ダブルタップで商品一覧へ遷移
     const canvas = document.getElementById('chartMargin');
+    canvas.style.touchAction = 'manipulation'; // iOSダブルタップズーム防止
     let lastTapTime = 0;
     let lastTapIdx = -1;
     let _popupCooldown = 0; // ポップアップ閉じ後のクールダウン
@@ -482,11 +483,15 @@ const Reports = (() => {
    * @param {string} canvasId - canvas要素のID
    * @param {string} chartKey - _charts内のキー
    * @param {string} axis - 'x' or 'y'（横棒の場合は'y'）
-   * @param {Function} onDoubleTap - (index) => void
+   * @param {number} dataCount - データ点の数（scale.ticksはiPhoneで間引かれるため実データ数を渡す）
+   * @param {Function} onDoubleTap - (index, onClose) => void
    */
-  function attachDoubleTap(canvasId, chartKey, axis, onDoubleTap) {
+  function attachDoubleTap(canvasId, chartKey, axis, dataCount, onDoubleTap) {
     const canvas = document.getElementById(canvasId);
     let lastTime = 0, lastIdx = -1, cooldown = 0;
+
+    // iOSのダブルタップズームを防止
+    canvas.style.touchAction = 'manipulation';
 
     function getIndex(e) {
       const chart = _charts[chartKey];
@@ -497,11 +502,11 @@ const Reports = (() => {
       const coord = axis === 'x'
         ? (e.clientX || e.pageX) - rect.left
         : (e.clientY || e.pageY) - rect.top;
-      const labels = scale.ticks;
-      for (let i = 0; i < labels.length; i++) {
+      // scale.ticksではなくdataCountを使う（iPhoneでラベルが間引かれても全データ点を検出）
+      for (let i = 0; i < dataCount; i++) {
         const pos = scale.getPixelForValue(i);
         const total = axis === 'x' ? scale.width : scale.height;
-        const half = (total / labels.length) / 2;
+        const half = (total / dataCount) / 2;
         if (coord >= pos - half && coord <= pos + half) return i;
       }
       return -1;
