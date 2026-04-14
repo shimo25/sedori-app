@@ -26,6 +26,13 @@ const SettingsUI = (() => {
       render();
     };
 
+    document.getElementById('btnAddSource').onclick = async () => {
+      const sources = await DB.Settings.get('sourcePresets', []);
+      sources.push('新しい仕入先');
+      await DB.Settings.set('sourcePresets', sources);
+      render();
+    };
+
     // CSV インポート
     document.getElementById('btnCsvImport').onclick = () => CsvImport.openImportDialog();
 
@@ -57,6 +64,7 @@ const SettingsUI = (() => {
 
   async function render() {
     await renderFeePresets();
+    await renderSourcePresets();
     renderDarkMode();
     renderThemeColors();
   }
@@ -119,6 +127,35 @@ const SettingsUI = (() => {
         presets.splice(Number(btn.dataset.del), 1);
         await DB.Settings.set('feePresets', presets);
         renderFeePresets();
+      };
+    });
+  }
+
+  // ---------- 仕入先プリセット ----------
+  async function renderSourcePresets() {
+    const sources = await DB.Settings.get('sourcePresets', []);
+    const container = document.getElementById('sourcePresets');
+    container.innerHTML = '';
+    sources.forEach((name, i) => {
+      const row = document.createElement('div');
+      row.className = 'form-row preset-row';
+      row.innerHTML = `
+        <label>仕入先名<input type="text" value="${escapeAttr(name)}" data-i="${i}"></label>
+        <label>&nbsp;<button class="btn btn-danger" data-del="${i}">削除</button></label>
+      `;
+      container.appendChild(row);
+    });
+    container.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('change', async () => {
+        sources[Number(inp.dataset.i)] = inp.value;
+        await DB.Settings.set('sourcePresets', sources);
+      });
+    });
+    container.querySelectorAll('[data-del]').forEach(btn => {
+      btn.onclick = async () => {
+        sources.splice(Number(btn.dataset.del), 1);
+        await DB.Settings.set('sourcePresets', sources);
+        renderSourcePresets();
       };
     });
   }

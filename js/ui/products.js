@@ -156,6 +156,7 @@ const ProductsUI = (() => {
       feeAmount: null, shippingCost: 0, memo: '', imageIds: []
     };
     const feePresets = await DB.Settings.get('feePresets', DEFAULT_FEE_PRESETS);
+    const sourcePresets = await DB.Settings.get('sourcePresets', []);
 
     const form = document.createElement('div');
     form.innerHTML = `
@@ -170,7 +171,20 @@ const ProductsUI = (() => {
       <div class="form-row">
         <label>数量 *<input type="number" id="f_quantity" value="${p.quantity}" min="1"></label>
         <label>仕入額(1点) *<input type="number" id="f_purchasePrice" value="${p.purchasePrice}" min="0"></label>
-        <label>仕入先<input type="text" id="f_purchaseFrom" value="${escapeAttr(p.purchaseFrom)}"></label>
+      </div>
+      <div class="field">
+        <label>仕入先</label>
+        ${sourcePresets.length > 0 ? `
+          <select id="f_purchaseFromSel">
+            <option value="">-- 選択 --</option>
+            ${sourcePresets.map(s => `<option value="${escapeAttr(s)}" ${p.purchaseFrom === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+            <option value="__other__" ${p.purchaseFrom && !sourcePresets.includes(p.purchaseFrom) ? 'selected' : ''}>その他（直接入力）</option>
+          </select>
+          <input type="text" id="f_purchaseFrom" value="${escapeAttr(p.purchaseFrom)}" placeholder="仕入先を入力"
+            style="margin-top:6px;${p.purchaseFrom && !sourcePresets.includes(p.purchaseFrom) ? '' : 'display:none;'}">
+        ` : `
+          <input type="text" id="f_purchaseFrom" value="${escapeAttr(p.purchaseFrom)}" placeholder="仕入先を入力">
+        `}
       </div>
       <div class="form-row">
         <label>ステータス<select id="f_status">
@@ -214,6 +228,22 @@ const ProductsUI = (() => {
       body: form,
       footer
     });
+
+    // 仕入先プルダウン↔テキスト切り替え
+    const sourceSel = form.querySelector('#f_purchaseFromSel');
+    const sourceInput = form.querySelector('#f_purchaseFrom');
+    if (sourceSel) {
+      sourceSel.onchange = () => {
+        if (sourceSel.value === '__other__') {
+          sourceInput.style.display = '';
+          sourceInput.value = '';
+          sourceInput.focus();
+        } else {
+          sourceInput.style.display = 'none';
+          sourceInput.value = sourceSel.value;
+        }
+      };
+    }
 
     // 販売先プリセット変更で手数料率を自動セット
     const platformSel = form.querySelector('#f_platform');
@@ -284,7 +314,9 @@ const ProductsUI = (() => {
         purchaseDate: form.querySelector('#f_purchaseDate').value,
         quantity: Number(form.querySelector('#f_quantity').value) || 1,
         purchasePrice: Number(form.querySelector('#f_purchasePrice').value) || 0,
-        purchaseFrom: form.querySelector('#f_purchaseFrom').value.trim(),
+        purchaseFrom: (form.querySelector('#f_purchaseFromSel') && form.querySelector('#f_purchaseFromSel').value !== '__other__' && form.querySelector('#f_purchaseFromSel').value !== '')
+          ? form.querySelector('#f_purchaseFromSel').value
+          : form.querySelector('#f_purchaseFrom').value.trim(),
         status: form.querySelector('#f_status').value,
         platform: form.querySelector('#f_platform').value,
         feeRate: Number(form.querySelector('#f_feeRate').value) || 0,
