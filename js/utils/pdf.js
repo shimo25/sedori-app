@@ -14,21 +14,31 @@
 const PdfUtil = (() => {
 
   const JP_FONT_URL = 'https://cdn.jsdelivr.net/gh/minoryorg/Noto-Sans-CJK-JP@master/fonts/NotoSansCJKjp-Regular.ttf';
+  const JP_FONT_CACHE_KEY = 'jpFontBase64_v1';
   let _jpFontBase64 = null;
 
-  // 日本語フォントを一度だけ読み込む
+  // 日本語フォントを読み込む（メモリ→localStorage→CDNの順にフォールバック）
   async function loadJpFont() {
     if (_jpFontBase64) return _jpFontBase64;
     try {
-      const res = await fetch(JP_FONT_URL);
-      if (!res.ok) throw new Error('fetch failed');
-      const buf = await res.arrayBuffer();
-      _jpFontBase64 = arrayBufferToBase64(buf);
-      return _jpFontBase64;
+      const cached = localStorage.getItem(JP_FONT_CACHE_KEY);
+      if (cached) {
+        _jpFontBase64 = cached;
+        return _jpFontBase64;
+      }
+    } catch (e) { /* localStorage 不可は無視 */ }
+
+    let res;
+    try {
+      res = await fetch(JP_FONT_URL);
     } catch (e) {
-      console.warn('日本語フォント読み込み失敗', e);
-      return null;
+      throw new Error(`日本語フォント取得失敗 (${e.message})`);
     }
+    if (!res.ok) throw new Error(`日本語フォント取得失敗 (status ${res.status})`);
+    const buf = await res.arrayBuffer();
+    _jpFontBase64 = arrayBufferToBase64(buf);
+    try { localStorage.setItem(JP_FONT_CACHE_KEY, _jpFontBase64); } catch (e) { /* 容量超過は無視 */ }
+    return _jpFontBase64;
   }
   function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -43,13 +53,28 @@ const PdfUtil = (() => {
   async function createDoc() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const font = await loadJpFont();
-    if (font) {
-      doc.addFileToVFS('NotoSansJP.ttf', font);
-      doc.addFont('NotoSansJP.ttf', 'noto', 'normal');
-      doc.setFont('noto');
-    }
+    const font = await loadJpFont(); // 失敗時は例外が投げられる
+    doc.addFileToVFS('NotoSansJP.ttf', font);
+    doc.addFont('NotoSansJP.ttf', 'noto', 'normal');
+    doc.setFont('noto');
     return doc;
+  }
+
+  // PDF生成呼び出しをラップし、フォント読込失敗時はトーストで通知して中止する
+  function withFontGuard(fn) {
+    return async (...args) => {
+      try {
+        return await fn(...args);
+      } catch (e) {
+        if (String(e.message || '').includes('日本語フォント')) {
+          const msg = '日本語フォントの読み込みに失敗しました。通信環境を確認して再度お試しください。';
+          try { Modal.toast(msg); } catch (_) { alert(msg); }
+          console.error(e);
+          return;
+        }
+        throw e;
+      }
+    };
   }
 
   // 仕訳配列を作成
@@ -224,5 +249,11 @@ const PdfUtil = (() => {
     return `${period.year}年${period.month}月`;
   }
 
-  return { exportJournal, exportLedger, exportPL, buildJournal, createDoc };
+  return {
+    exportJournal: withFontGuard(exportJournal),
+    exportLedger: withFontGuard(exportLedger),
+    exportPL: withFontGuard(exportPL),
+    buildJournal,
+    createDoc
+  };
 })();
