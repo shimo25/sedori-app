@@ -6,6 +6,7 @@ const ProductsUI = (() => {
   let _marginFilter = null; // { lo, hi, label } レポートからのフィルタ
   let _periodFilter = null; // { year, month, day, label } レポートからの期間フィルタ
   let _statusFilter = null; // { key, label } レポートからのステータスフィルタ
+  let _sourceFilter = null; // { name, label } レポートからの仕入先フィルタ
   let _pendingSort = null;  // 次回render時に適用するソートキー
 
   function ensureSortOrder() {
@@ -94,6 +95,11 @@ const ProductsUI = (() => {
     // ステータスフィルタ（レポートからの遷移時）
     if (_statusFilter) {
       products = products.filter(p => p.status === _statusFilter.key);
+    }
+
+    // 仕入先フィルタ（レポートからの遷移時）
+    if (_sourceFilter) {
+      products = products.filter(p => ((p.purchaseFrom || '不明').trim() || '不明') === _sourceFilter.name);
     }
 
     products.sort(getSortFn(sortKey));
@@ -475,10 +481,17 @@ const ProductsUI = (() => {
     _statusFilter = { key, label };
   }
 
+  function filterBySource(name, label) {
+    clearAllReportFilters();
+    _sourceFilter = { name, label };
+    _pendingSort = 'sale_desc';
+  }
+
   function clearAllReportFilters() {
     _marginFilter = null;
     _periodFilter = null;
     _statusFilter = null;
+    _sourceFilter = null;
   }
 
   function clearReportFilter() {
@@ -491,7 +504,7 @@ const ProductsUI = (() => {
 
   function renderFilterBadge() {
     let badge = document.getElementById('marginFilterBadge');
-    const activeFilter = _marginFilter || _periodFilter || _statusFilter;
+    const activeFilter = _marginFilter || _periodFilter || _statusFilter || _sourceFilter;
     if (!activeFilter) {
       if (badge) badge.remove();
       return;
@@ -510,6 +523,8 @@ const ProductsUI = (() => {
       text = `<b>${_periodFilter.label}</b> の売却商品を表示中`;
     } else if (_statusFilter) {
       text = `ステータス <b>${_statusFilter.label}</b> で絞り込み中`;
+    } else if (_sourceFilter) {
+      text = `仕入先 <b>${_sourceFilter.label}</b> で絞り込み中`;
     }
     badge.innerHTML = `${text} <button id="btnClearMargin">× 解除</button>`;
     badge.querySelector('#btnClearMargin').onclick = clearReportFilter;
@@ -534,5 +549,5 @@ const ProductsUI = (() => {
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  return { render, openForm, calcProfit, filterByMargin, filterByPeriod, filterByStatusFromReport };
+  return { render, openForm, calcProfit, filterByMargin, filterByPeriod, filterByStatusFromReport, filterBySource };
 })();

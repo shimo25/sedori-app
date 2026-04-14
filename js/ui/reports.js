@@ -531,6 +531,25 @@ const Reports = (() => {
         }
       }
     });
+
+    // ダブルタップ → 仕入先で商品一覧に遷移
+    const labels = entries.map(([l]) => l);
+    if (labels.length > 0 && labels[0] !== 'データなし') {
+      attachDoubleTap('chartSource', 'source', 'y', labels.length, (idx, done) => {
+        const sourceName = labels[idx];
+        const amount = entries[idx][1];
+        showChartJumpPopup(
+          '仕入先の商品を表示',
+          `<b>${sourceName}</b> の商品一覧（売上 ¥${amount.toLocaleString()}）`,
+          () => {
+            ProductsUI.filterBySource(sourceName, sourceName);
+            switchView('products');
+            done();
+          },
+          done
+        );
+      });
+    }
   }
 
   // ---------- テキスト集計（既存相当） ----------
