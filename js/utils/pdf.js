@@ -250,7 +250,8 @@ const PdfUtil = (() => {
 
     const sales = sum('売上高', 'credit');
     const purchase = sum('仕入高', 'debit');
-    const expenseAccounts = ['支払手数料', '荷造運賃', ...EXPENSE_CATEGORIES.map(c => c.label)];
+    // 経費科目は「荷造運賃」＋EXPENSE_CATEGORIES（支払手数料はここに含まれるので重複させない）
+    const expenseAccounts = [...new Set(['荷造運賃', ...EXPENSE_CATEGORIES.map(c => c.label)])];
     const expenseRows = expenseAccounts.map(a => [a, sum(a, 'debit')]).filter(r => r[1] > 0);
     const expenseTotal = expenseRows.reduce((s, r) => s + r[1], 0);
     const grossProfit = sales - purchase;
@@ -264,10 +265,10 @@ const PdfUtil = (() => {
     doc.y -= 16;
 
     const rows = [
-      ['【売上の部】', ''],
-      ['  売上高', sales.toLocaleString()],
-      ['【売上原価】', ''],
-      ['  仕入高', purchase.toLocaleString()],
+      ['【売上】', ''],
+      ['  売上', sales.toLocaleString()],
+      ['【仕入】', ''],
+      ['  仕入', purchase.toLocaleString()],
       ['売上総利益（粗利）', grossProfit.toLocaleString()],
       ['【販売費及び一般管理費】', ''],
       ...expenseRows.map(([a, v]) => ['  ' + a, v.toLocaleString()]),
