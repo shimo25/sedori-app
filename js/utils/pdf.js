@@ -169,12 +169,12 @@ const PdfUtil = (() => {
       if (!inPeriod(p.purchaseDate, period)) continue;
       const amt = (p.purchasePrice || 0) * (p.quantity || 1);
       if (amt > 0) {
-        entries.push({ date: p.purchaseDate, debit: '仕入高', debitAmt: amt, credit: '現金', creditAmt: amt, summary: `仕入 ${p.name}` });
+        entries.push({ date: p.purchaseDate, debit: '仕入', debitAmt: amt, credit: '現金', creditAmt: amt, summary: `仕入 ${p.name}` });
       }
     }
     for (const p of products) {
       if (!p.saleDate || !p.salePrice || !inPeriod(p.saleDate, period)) continue;
-      entries.push({ date: p.saleDate, debit: '現金', debitAmt: p.salePrice, credit: '売上高', creditAmt: p.salePrice, summary: `売上 ${p.name}` });
+      entries.push({ date: p.saleDate, debit: '現金', debitAmt: p.salePrice, credit: '売上', creditAmt: p.salePrice, summary: `売上 ${p.name}` });
       const fee = p.feeAmount ?? (p.salePrice * (p.feeRate || 0) / 100);
       if (fee > 0) entries.push({ date: p.saleDate, debit: '支払手数料', debitAmt: Math.round(fee), credit: '現金', creditAmt: Math.round(fee), summary: `販売手数料 ${p.name}` });
       if (p.shippingCost > 0) entries.push({ date: p.saleDate, debit: '荷造運賃', debitAmt: p.shippingCost, credit: '現金', creditAmt: p.shippingCost, summary: `送料 ${p.name}` });
@@ -248,8 +248,8 @@ const PdfUtil = (() => {
       entries.filter(e => e[side === 'debit' ? 'debit' : 'credit'] === account)
              .reduce((s, e) => s + (side === 'debit' ? e.debitAmt : e.creditAmt), 0);
 
-    const sales = sum('売上高', 'credit');
-    const purchase = sum('仕入高', 'debit');
+    const sales = sum('売上', 'credit');
+    const purchase = sum('仕入', 'debit');
     // 経費科目は「荷造運賃」＋EXPENSE_CATEGORIES（支払手数料はここに含まれるので重複させない）
     const expenseAccounts = [...new Set(['荷造運賃', ...EXPENSE_CATEGORIES.map(c => c.label)])];
     const expenseRows = expenseAccounts.map(a => [a, sum(a, 'debit')]).filter(r => r[1] > 0);

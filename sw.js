@@ -1,7 +1,7 @@
 /**
  * Service Worker - ネットワーク優先キャッシュ（常に最新を取得）
  */
-const CACHE_NAME = 'sedori-app-v39';
+const CACHE_NAME = 'sedori-app-v40';
 const CACHE_FILES = [
   './',
   './index.html',
