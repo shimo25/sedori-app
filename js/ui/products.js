@@ -121,13 +121,18 @@ const ProductsUI = (() => {
         <div class="product-info">
           <p class="product-name">${escapeHtml(p.name)}</p>
           <div class="product-meta">
-            <span class="status-badge status-${p.status}">${statusLabel(p.status)}</span>
+            <span class="status-badge status-${p.status}" data-pid="${p.id}">${statusLabel(p.status)}</span>
             <span>仕入 ${yen(p.purchasePrice)}</span>
             ${p.salePrice ? `<span>売上 ${yen(p.salePrice)}</span>` : ''}
             ${p.salePrice ? `<span style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">損益 ${yen(profit)}</span>` : ''}
             ${p.salePrice ? `<span class="product-margin" style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">粗利率 ${calcMargin(p)}%</span>` : ''}
           </div>
         </div>`;
+      // ステータスバッジタップでプルダウン変更
+      li.querySelector('.status-badge').onclick = (e) => {
+        e.stopPropagation();
+        showStatusPicker(e.currentTarget, p);
+      };
       li.onclick = () => openForm(p);
       list.appendChild(li);
     }
@@ -334,6 +339,10 @@ const ProductsUI = (() => {
         imageIds: currentImageIds
       };
       if (!newP.name) { Modal.toast('商品名を入力してください'); return; }
+      // 販売日が空 & ステータスが「取引中」に変わったら自動で今日の日付をセット
+      if (newP.status === 'trading' && !newP.saleDate && p.status !== 'trading') {
+        newP.saleDate = today();
+      }
       // 手数料額を自動計算
       if (newP.salePrice && newP.feeRate) {
         newP.feeAmount = Math.round(newP.salePrice * newP.feeRate / 100);
@@ -543,6 +552,53 @@ const ProductsUI = (() => {
       case 'margin_asc':    return (a, b) => calcMarginNum(a) - calcMarginNum(b);
       default:              return (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
     }
+  }
+
+  // ステータス変更プルダウン（商品一覧から直接変更）
+  function showStatusPicker(badge, product) {
+    // 既に開いているピッカーがあれば閉じる
+    const existing = document.querySelector('.status-picker');
+    if (existing) existing.remove();
+
+    const picker = document.createElement('div');
+    picker.className = 'status-picker';
+    picker.innerHTML = STATUSES.map(s =>
+      `<button class="status-picker-item status-${s.key} ${s.key === product.status ? 'current' : ''}" data-key="${s.key}">${s.label}</button>`
+    ).join('');
+
+    // バッジの直下に配置
+    badge.style.position = 'relative';
+    badge.appendChild(picker);
+
+    picker.onclick = async (e) => {
+      const btn = e.target.closest('.status-picker-item');
+      if (!btn) return;
+      e.stopPropagation();
+      const newStatus = btn.dataset.key;
+      picker.remove();
+      if (newStatus === product.status) return;
+
+      // 販売日が空 & ステータスが「取引中」に変わったら自動で今日の日付をセット
+      if (newStatus === 'trading' && !product.saleDate) {
+        product.saleDate = today();
+      }
+      product.status = newStatus;
+      await DB.Products.save(product);
+      Modal.toast(`${statusLabel(newStatus)} に変更しました`);
+      render();
+      Dashboard.refresh();
+    };
+
+    // ピッカー外タップで閉じる
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!picker.contains(e.target)) {
+          picker.remove();
+          document.removeEventListener('click', closeHandler, true);
+        }
+      };
+      document.addEventListener('click', closeHandler, true);
+    }, 0);
   }
 
   function numOrNull(v) { return v === '' ? null : Number(v); }

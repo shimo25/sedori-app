@@ -132,6 +132,23 @@ main {
 .status-await_rating { background: #fce7f3; color: #9f1239; }
 .status-completed { background: #f1f5f9; color: #475569; }
 
+/* ステータス変更ピッカー（商品一覧用） */
+.status-picker {
+  position: absolute; left: 0; top: 100%; margin-top: 4px;
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18); z-index: 100;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; min-width: 140px; white-space: nowrap;
+}
+.status-picker-item {
+  border: none; padding: 7px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  text-align: left;
+}
+.status-picker-item.current {
+  outline: 2px solid var(--primary); outline-offset: -2px;
+}
+
 /* ===== 経費リスト ===== */
 .expense-item {
   background: #fff; border-radius: var(--radius); padding: 12px;
@@ -452,6 +469,7 @@ html.dark .status-trading { background: #78350f; color: #fde68a; }
 html.dark .status-shipped { background: #3b0764; color: #c4b5fd; }
 html.dark .status-await_rating { background: #4c0519; color: #fda4af; }
 html.dark .status-completed { background: #334155; color: #cbd5e1; }
+html.dark .status-picker { background: #1e293b; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 
 /* ===== CSV インポート ===== */
 .csv-preview {
